@@ -261,7 +261,7 @@ public class PedroAutonomous extends LinearOpMode {
             case 0:
                 // Start Path1, move turret to -80 DURING path
                 robotFunctions.setIndexerMiddle();
-                robotFunctions.setTurretAngle(-80);
+                robotFunctions.setTurretAngle(-82);
                 shooterRunning = true;
                 follower.followPath(paths.Path1, true);
                 break;
@@ -284,7 +284,7 @@ public class PedroAutonomous extends LinearOpMode {
                 break;
             case 4:
                 // End of Path3: start Path4, move turret to -30 DURING path
-                robotFunctions.setTurretAngle(-30);
+                robotFunctions.setTurretAngle(-35);
                 follower.followPath(paths.Path4, true);
                 break;
             case 5:
@@ -300,7 +300,7 @@ public class PedroAutonomous extends LinearOpMode {
             case 7:
                 // Path5 done, start Path6, move turret to -30 DURING path
                 robotFunctions.stopIntakeSystem();
-                robotFunctions.setTurretAngle(-30);
+                robotFunctions.setTurretAngle(-35);
                 follower.followPath(paths.Path6, true);
                 break;
             case 8:
@@ -316,7 +316,7 @@ public class PedroAutonomous extends LinearOpMode {
             case 10:
                 // Path7 done, start Path8, move turret to -80 DURING path
                 robotFunctions.stopIntakeSystem();
-                robotFunctions.setTurretAngle(-80);
+                robotFunctions.setTurretAngle(-83);
                 follower.followPath(paths.Path8, true);
                 break;
             case 11:

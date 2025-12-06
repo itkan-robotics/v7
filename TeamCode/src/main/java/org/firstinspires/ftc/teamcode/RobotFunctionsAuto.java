@@ -1518,7 +1518,6 @@ public class RobotFunctionsAuto {
         // Timeout after 3 seconds to prevent infinite loop if no target
         long startTime = System.currentTimeMillis();
         long timeout = 500;  // 3 second timeout
-        setIndexerMiddle();
         
         while (opMode.opModeIsActive()) {
             // Update shooter control (this adjusts power based on current speed)
