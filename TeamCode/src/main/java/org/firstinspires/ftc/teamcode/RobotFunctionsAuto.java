@@ -64,6 +64,7 @@ public class RobotFunctionsAuto {
      * @param power Power level (-1.0 to 1.0, negative for reverse)
      */
     public void runIntakeSystem(double power) {
+
         robot.intakeMotor.setPower(power);
         robot.transferMotor.setPower(power);
     }
@@ -1671,6 +1672,7 @@ public class RobotFunctionsAuto {
      */
     public void SSS(com.qualcomm.robotcore.eventloop.opmode.LinearOpMode opMode) throws InterruptedException {
         // Start shooter spinning immediately (will stay on throughout)
+        setIndexerMiddle();
         controlShooter(true);
         
         // Shoot ball 1 (keeps shooter spinning)

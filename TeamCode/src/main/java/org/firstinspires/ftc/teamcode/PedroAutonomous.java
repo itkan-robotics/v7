@@ -38,7 +38,7 @@ public class PedroAutonomous extends LinearOpMode {
     private int detectedTagId = 21;
 
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose startPose = new Pose(129.0, 108.0, Math.toRadians(-90));
+    private final Pose startPose = new Pose(129.0, 107.0, Math.toRadians(-90));
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -261,7 +261,7 @@ public class PedroAutonomous extends LinearOpMode {
             case 0:
                 // Start Path1, move turret to -80 DURING path
                 robotFunctions.setIndexerMiddle();
-                robotFunctions.setTurretAngle(-82);
+                robotFunctions.setTurretAngle(-83.5);
                 shooterRunning = true;
                 follower.followPath(paths.Path1, true);
                 break;
@@ -316,7 +316,7 @@ public class PedroAutonomous extends LinearOpMode {
             case 10:
                 // Path7 done, start Path8, move turret to -80 DURING path
                 robotFunctions.stopIntakeSystem();
-                robotFunctions.setTurretAngle(-83);
+                robotFunctions.setTurretAngle(-85);
                 follower.followPath(paths.Path8, true);
                 break;
             case 11:

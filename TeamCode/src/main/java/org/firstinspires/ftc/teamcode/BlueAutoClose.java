@@ -38,7 +38,7 @@ public class BlueAutoClose extends LinearOpMode {
     private int detectedTagId = 21;
 
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose startPose = new Pose(144-129.0, 108.0, Math.toRadians(-180+90));
+    private final Pose startPose = new Pose(144-129.0, 107.0, Math.toRadians(-180+90));
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -68,8 +68,8 @@ public class BlueAutoClose extends LinearOpMode {
 
         // === INIT LOOP - Detect AprilTag ===
         while (!isStarted() && !isStopRequested()) {
-            robotFunctions.setTurretAngle(0 + -1*45);
-            // Continuously check for AprilTag during init
+            robotFunctions.setTurretAngle(0 + -1*54);
+                    // Continuously check for AprilTag during init
             int tagId = robotFunctions.getDetectedAprilTagId();
             if (tagId == 21 || tagId == 22 || tagId == 23) {
                 detectedTagId = tagId;
@@ -133,7 +133,7 @@ public class BlueAutoClose extends LinearOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(144-129.000, 108.000),
+                                    new Pose(144-129.000, 107.000),
                                     new Pose(144-98.000, 110.000),
                                     new Pose(144-88.000, 83.000)
                             )
@@ -164,7 +164,7 @@ public class BlueAutoClose extends LinearOpMode {
             Path4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(144-129.000, 72.000), new Pose(144-88.000, 83.000))
+                            new BezierLine(new Pose(144-129.000, 72.000), new Pose(144-89.000, 83.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-180-0), Math.toRadians(-180+96))
                     .build();
@@ -173,7 +173,7 @@ public class BlueAutoClose extends LinearOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(144-88.000, 83.000),
+                                    new Pose(144-89.000, 83.000),
                                     new Pose(144-85.000, 56.000),
                                     new Pose(144-100.042, 59.332),
                                     new Pose(144-123.000, 57.000)
@@ -261,7 +261,7 @@ public class BlueAutoClose extends LinearOpMode {
             case 0:
                 // Start Path1, move turret to -80 DURING path
                 robotFunctions.setIndexerMiddle();
-                robotFunctions.setTurretAngle(84);
+                robotFunctions.setTurretAngle(78.5);
                 shooterRunning = true;
                 follower.followPath(paths.Path1, true);
                 break;
@@ -284,7 +284,7 @@ public class BlueAutoClose extends LinearOpMode {
                 break;
             case 4:
                 // End of Path3: start Path4, move turret to -30 DURING path
-                robotFunctions.setTurretAngle(34);
+                robotFunctions.setTurretAngle(28.5);
                 follower.followPath(paths.Path4, true);
                 break;
             case 5:
@@ -300,7 +300,7 @@ public class BlueAutoClose extends LinearOpMode {
             case 7:
                 // Path5 done, start Path6, move turret to -30 DURING path
                 robotFunctions.stopIntakeSystem();
-                robotFunctions.setTurretAngle(34);
+                robotFunctions.setTurretAngle(28.5);
                 follower.followPath(paths.Path6, true);
                 break;
             case 8:
@@ -316,7 +316,7 @@ public class BlueAutoClose extends LinearOpMode {
             case 10:
                 // Path7 done, start Path8, move turret to -80 DURING path
                 robotFunctions.stopIntakeSystem();
-                robotFunctions.setTurretAngle(83.4);
+                robotFunctions.setTurretAngle(82.4);
                 follower.followPath(paths.Path8, true);
                 break;
             case 11:
@@ -369,7 +369,7 @@ public class BlueAutoClose extends LinearOpMode {
             case 3:
                 // Following Path3
                 if (!follower.isBusy()) {
-                    sleep(500);
+                    sleep(1000);
                     setPathState(4); // End of Path3
                 }
                 break;
