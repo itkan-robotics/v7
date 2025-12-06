@@ -13,11 +13,11 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous(name = "Pedro Pathing Autonomous", group = "Autonomous")
+@Autonomous(name = "BlueAutoClose", group = "Autonomous")
 @Configurable // Panels
-public class PedroAutonomous extends LinearOpMode {
-//ctrl + f new Pose, new Pose(144-
-    //ctrl f Math.toRadians(, Math.toRadians(-180-
+public class BlueAutoClose extends LinearOpMode {
+    //ctrl + f new Pose, new Pose(144-144-
+    //ctrl f Math.toRadians(-180-, Math.toRadians(-180--180-
     //multiply turrent heading by -1
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     public Follower follower; // Pedro Pathing follower instance
@@ -38,7 +38,7 @@ public class PedroAutonomous extends LinearOpMode {
     private int detectedTagId = 21;
 
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose startPose = new Pose(129.0, 108.0, Math.toRadians(-90));
+    private final Pose startPose = new Pose(144-129.0, 108.0, Math.toRadians(-180+90));
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -68,7 +68,7 @@ public class PedroAutonomous extends LinearOpMode {
 
         // === INIT LOOP - Detect AprilTag ===
         while (!isStarted() && !isStopRequested()) {
-            robotFunctions.setTurretAngle(45);
+            robotFunctions.setTurretAngle(0 + -1*45);
             // Continuously check for AprilTag during init
             int tagId = robotFunctions.getDetectedAprilTagId();
             if (tagId == 21 || tagId == 22 || tagId == 23) {
@@ -133,50 +133,50 @@ public class PedroAutonomous extends LinearOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(129.000, 108.000),
-                                    new Pose(98.000, 110.000),
-                                    new Pose(88.000, 83.000)
+                                    new Pose(144-129.000, 108.000),
+                                    new Pose(144-98.000, 110.000),
+                                    new Pose(144-88.000, 83.000)
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(-180+90), Math.toRadians(-180-0))
                     .build();
 
             Path2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(88.000, 83.000), new Pose(122.346, 80.000))
+                            new BezierLine(new Pose(144-88.000, 83.000), new Pose(144-122.346 - 3, 80.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(-180-0), Math.toRadians(-180-0))
                     .build();
 
             Path3 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(122.346, 80.000),
-                                    new Pose(122.000, 75.000),
-                                    new Pose(129.000, 72.000)
+                                    new Pose(144-122.346 - 3, 80.000),
+                                    new Pose(144-122.000, 75.000),
+                                    new Pose(144-129.000, 72.000 - 1 )
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(-180-0), Math.toRadians(-180-0))
                     .build();
 
             Path4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(129.000, 72.000), new Pose(88.000, 83.000))
+                            new BezierLine(new Pose(144-129.000, 72.000 - 1), new Pose(144-88.000, 83.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-96))
+                    .setLinearHeadingInterpolation(Math.toRadians(-180-0), Math.toRadians(-180+96))
                     .build();
 
             Path5 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(88.000, 83.000),
-                                    new Pose(85.000, 56.000),
-                                    new Pose(100.042, 59.332),
-                                    new Pose(123.000, 57.000)
+                                    new Pose(144-88.000, 83.000),
+                                    new Pose(144-85.000, 56.000),
+                                    new Pose(144-100.042, 59.332),
+                                    new Pose(144-123.000, 57.000)
                             )
                     )
                     .setTangentHeadingInterpolation()
@@ -185,20 +185,20 @@ public class PedroAutonomous extends LinearOpMode {
             Path6 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(123.000, 57.000), new Pose(88.000, 83.000))
+                            new BezierLine(new Pose(144-123.000, 57.000), new Pose(144-88.000, 83.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-6), Math.toRadians(-95))
+                    .setLinearHeadingInterpolation(Math.toRadians(-180+6), Math.toRadians(-180+95))
                     .build();
 
             Path7 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(88.000, 83.000),
-                                    new Pose(82.000, 44.000),
-                                    new Pose(94.629, 35.946),
-                                    new Pose(84.000, 36.000),
-                                    new Pose(128.000, 32.000)
+                                    new Pose(144-88.000, 83.000),
+                                    new Pose(144-82.000, 44.000),
+                                    new Pose(144-94.629, 35.946),
+                                    new Pose(144-84.000, 36.000),
+                                    new Pose(144-128.000, 32.000)
                             )
                     )
                     .setTangentHeadingInterpolation()
@@ -207,17 +207,17 @@ public class PedroAutonomous extends LinearOpMode {
             Path8 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(128.000, 32.000), new Pose(88.000, 83.000))
+                            new BezierLine(new Pose(144-128.000, 32.000), new Pose(144-88.000, 83.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(-180-0), Math.toRadians(-180-0))
                     .build();
 
             Path9 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(88.000, 83.000), new Pose(120.000, 69.000))
+                            new BezierLine(new Pose(144-88.000, 83.000), new Pose(144-120.000, 69.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-90))
+                    .setLinearHeadingInterpolation(Math.toRadians(-180-0), Math.toRadians(-180+90))
                     .build();
         }
     }
@@ -261,7 +261,7 @@ public class PedroAutonomous extends LinearOpMode {
             case 0:
                 // Start Path1, move turret to -80 DURING path
                 robotFunctions.setIndexerMiddle();
-                robotFunctions.setTurretAngle(-80);
+                robotFunctions.setTurretAngle(10+-1*-80);
                 shooterRunning = true;
                 follower.followPath(paths.Path1, true);
                 break;
@@ -284,7 +284,7 @@ public class PedroAutonomous extends LinearOpMode {
                 break;
             case 4:
                 // End of Path3: start Path4, move turret to -30 DURING path
-                robotFunctions.setTurretAngle(-30);
+                robotFunctions.setTurretAngle(10+-1*-30);
                 follower.followPath(paths.Path4, true);
                 break;
             case 5:
@@ -300,7 +300,7 @@ public class PedroAutonomous extends LinearOpMode {
             case 7:
                 // Path5 done, start Path6, move turret to -30 DURING path
                 robotFunctions.stopIntakeSystem();
-                robotFunctions.setTurretAngle(-30);
+                robotFunctions.setTurretAngle(10+-1*-30);
                 follower.followPath(paths.Path6, true);
                 break;
             case 8:
@@ -316,7 +316,7 @@ public class PedroAutonomous extends LinearOpMode {
             case 10:
                 // Path7 done, start Path8, move turret to -80 DURING path
                 robotFunctions.stopIntakeSystem();
-                robotFunctions.setTurretAngle(-80);
+                robotFunctions.setTurretAngle(10+-1*-80);
                 follower.followPath(paths.Path8, true);
                 break;
             case 11:
