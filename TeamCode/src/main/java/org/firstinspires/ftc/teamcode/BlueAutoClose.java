@@ -155,7 +155,7 @@ public class BlueAutoClose extends LinearOpMode {
                             new BezierCurve(
                                     new Pose(144-122.346 - 3, 80.000),
                                     new Pose(144-122.000, 75.000),
-                                    new Pose(144-129.000, 72.000)
+                                    new Pose(144-127.00, 72.000)
                             )
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-180-0), Math.toRadians(-180-0))
@@ -164,7 +164,7 @@ public class BlueAutoClose extends LinearOpMode {
             Path4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(144-129.000, 72.000), new Pose(144-89.000, 83.000))
+                            new BezierLine(new Pose(144-127.000, 72.000), new Pose(144-89.000, 83.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-180-0), Math.toRadians(-180+96))
                     .build();
@@ -176,7 +176,7 @@ public class BlueAutoClose extends LinearOpMode {
                                     new Pose(144-89.000, 83.000),
                                     new Pose(144-85.000, 56.000),
                                     new Pose(144-100.042, 59.332),
-                                    new Pose(144-123.000, 57.000)
+                                    new Pose(144-125.000, 55.000)
                             )
                     )
                     .setTangentHeadingInterpolation()
@@ -185,7 +185,7 @@ public class BlueAutoClose extends LinearOpMode {
             Path6 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(144-123.000, 57.000), new Pose(144-88.000, 83.000))
+                            new BezierLine(new Pose(144-125.000, 55.000), new Pose(144-86.500, 83.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-180+6), Math.toRadians(-180+95))
                     .build();
@@ -194,7 +194,7 @@ public class BlueAutoClose extends LinearOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(144-88.000, 83.000),
+                                    new Pose(144-86.500, 83.000),
                                     new Pose(144-82.000, 44.000),
                                     new Pose(144-94.629, 35.946),
                                     new Pose(144-84.000, 36.000),
