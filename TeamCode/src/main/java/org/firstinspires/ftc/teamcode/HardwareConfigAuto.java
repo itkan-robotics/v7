@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 /**
  * Hardware configuration class for the robot
@@ -123,10 +124,10 @@ public class HardwareConfigAuto {
     public static final double SHOOTER_MAX_POWER = 1.0;
 
     // Limelight auto-align settings
-    public static final double LIMELIGHT_KP = 0.04;  // Proportional gain for alignment
+    public static final double LIMELIGHT_KP = 0.055;  // Proportional gain for alignment
     public static final double LIMELIGHT_MIN_POWER = 0.1;  // Minimum turn power
     public static final double LIMELIGHT_MAX_POWER = 0.5;  // Maximum turn power
-    public static final double LIMELIGHT_TOLERANCE = 2.0;  // Degrees tolerance for alignment
+    public static final double LIMELIGHT_TOLERANCE = 4.0;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close (area >= 0.5)
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far (area < 0.5)
     public static final double APRILTAG_AREA_CLOSE_THRESHOLD = 0.5;  // Area threshold for close vs far distance
@@ -155,6 +156,8 @@ public class HardwareConfigAuto {
     public static final double WHEEL_DIAMETER_MM = 96.0;        // Wheel diameter in mm
     public static final double COUNTS_PER_MM = COUNTS_PER_MOTOR_REV / (Math.PI * WHEEL_DIAMETER_MM);
     public static final double DRIVE_HEADING_TOLERANCE = 2.0;    // Heading tolerance in degrees for rotation
+
+    VoltageSensor batteryVoltageSensor;
 
     // Hardware map reference
     private HardwareMap hwMap;
@@ -206,6 +209,10 @@ public class HardwareConfigAuto {
         limelight = hwMap.get(Limelight3A.class, "limelight");
         limelight.pipelineSwitch(0);  // Switch to pipeline 0
         limelight.start();  // Start polling
+
+        batteryVoltageSensor = hwMap.voltageSensor.iterator().next();
+
+
 
         // Initialize GoBUILDA Pinpoint Odometry Computer (with built-in IMU)
         //pinpoint = hwMap.get(GoBildaPinpointDriver.class, "pinpoint");

@@ -51,7 +51,9 @@ public class MotorElectricalTestTeleOp extends LinearOpMode {
         // Set initial states
         robotFunctions.setBlocker(true);
         robotFunctions.stopIntakeSystem();
-        
+        robotFunctions.setIndexerMiddle();
+
+
         telemetry.addLine("=== Motor Electrical Test TeleOp ===");
         telemetry.addLine("A = Both motors ON");
         telemetry.addLine("X = Intake only");
@@ -69,6 +71,13 @@ public class MotorElectricalTestTeleOp extends LinearOpMode {
                 transferRunning = true;
                 robot.intakeMotor.setPower(HardwareConfigAuto.INTAKE_POWER);
                 robot.transferMotor.setPower(HardwareConfigAuto.TRANSFER_POWER);
+                telemetry.addLine("both ");
+            }
+
+            if(gamepad1.dpad_down) {
+                robot.intakeMotor.setPower(-1);
+                robot.transferMotor.setPower(-1);
+                telemetry.addLine("outtake");
             }
             
             // X - Intake only
@@ -179,6 +188,7 @@ public class MotorElectricalTestTeleOp extends LinearOpMode {
             telemetry.addLine("=== COMBINED ===");
             telemetry.addData("Total Current Draw", "%.2f A", totalCurrent);
             telemetry.addData("Power Consumption", "%.2f W", totalCurrent * batteryVoltage);
+            telemetry.addData("intake full", robotFunctions.intakeFull());
             telemetry.addLine("");
             
             // Controls reminder

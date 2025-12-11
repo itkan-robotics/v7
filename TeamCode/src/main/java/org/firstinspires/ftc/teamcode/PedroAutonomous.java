@@ -112,6 +112,9 @@ public class PedroAutonomous extends LinearOpMode {
             panelsTelemetry.debug("Y", follower.getPose().getY());
             panelsTelemetry.debug("Heading", follower.getPose().getHeading());
             panelsTelemetry.debug("Shooter Running", shooterRunning);
+            panelsTelemetry.debug("Intake Full ??", robotFunctions.intakeFull());
+            panelsTelemetry.debug( "power its taking", robotFunctions.getPowerConsumption());
+
             panelsTelemetry.update(telemetry);
         }
     }
@@ -369,8 +372,9 @@ public class PedroAutonomous extends LinearOpMode {
             case 3:
                 // Following Path3
                 if (!follower.isBusy()) {
-                    sleep(500);
-                    setPathState(4); // End of Path3
+                    if (robotFunctions.intakeFull()) {
+                        setPathState(4); // End of Path3
+                    }
                 }
                 break;
             case 4:

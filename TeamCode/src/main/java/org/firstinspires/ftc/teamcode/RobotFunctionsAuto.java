@@ -1,10 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
+
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
@@ -16,7 +20,10 @@ import android.graphics.Color;
 public class RobotFunctionsAuto {
     
     private HardwareConfigAuto robot;
-    
+    private VoltageSensor batteryVoltageSensor;
+
+
+
     // Bang-bang controller state
     private double lastShooterPower = 0.0;
     
@@ -681,7 +688,28 @@ public class RobotFunctionsAuto {
         
         return 0.0;  // No tag detected
     }
-    
+
+    public double getPowerConsumption(){
+        double batteryVoltage = robot.batteryVoltageSensor.getVoltage();
+
+        double totalCurrent = 0.0;
+        if (robot.intakeMotor instanceof DcMotorEx) {
+            totalCurrent += ((DcMotorEx) robot.intakeMotor).getCurrent(CurrentUnit.AMPS);
+        }
+        if (robot.transferMotor instanceof DcMotorEx) {
+            totalCurrent += ((DcMotorEx) robot.transferMotor).getCurrent(CurrentUnit.AMPS);
+        }
+
+        return totalCurrent * batteryVoltage;
+    }
+
+    public boolean intakeFull(){
+        if(getPowerConsumption() > 55){
+            return true;
+        }else{
+            return false;
+        }
+    }
     /**
      * Get Limelight tx value (horizontal offset)
      * @return tx value in degrees, or 0.0 if no valid target
