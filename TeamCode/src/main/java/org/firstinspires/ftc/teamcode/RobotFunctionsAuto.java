@@ -68,7 +68,10 @@ public class RobotFunctionsAuto {
         robot.intakeMotor.setPower(power);
         robot.transferMotor.setPower(power);
     }
-    
+
+    public void ejectFourth() {
+        robot.intakeMotor.setPower(-HardwareConfigAuto.INTAKE_POWER);
+    }
     /**
      * Run intake system with dynamic transfer speed based on distance
      * Used during shooting - reduces transfer speed when far away
@@ -1199,6 +1202,64 @@ public class RobotFunctionsAuto {
         
         double turretAngle = calculateTurretAngleToGoal(goalX, goalY);
         setTurretAngle(turretAngle);
+    }
+    
+    /**
+     * Auto-align turret to target using Limelight tx value
+     * Only aligns to AprilTag IDs 20 or 24
+     * Calculates offset based on goal position behind AprilTag
+     * Updates turret angle proportionally to error
+     * @return True if alignment was performed, false if no valid target
+     */
+    public boolean limelightTurretAutoAlign() {
+        LLResult result = robot.limelight.getLatestResult();
+        
+        if (result == null || !result.isValid()) {
+            return false;
+        }
+        
+        // Check if we have fiducial (AprilTag) results
+        if (result.getFiducialResults() == null || result.getFiducialResults().isEmpty()) {
+            return false;
+        }
+        
+        // Get the first detected fiducial
+        LLResultTypes.FiducialResult fiducial = result.getFiducialResults().get(0);
+        int tagId = (int) fiducial.getFiducialId();
+        
+        // Only align to tags 20 or 24
+        if (tagId != 20 && tagId != 24) {
+            return false;
+        }
+        
+        // Get horizontal offset (tx) from Limelight
+        double tx = result.getTx();
+        
+        // Calculate target offset based on goal position behind AprilTag
+        double targetOffset = calculateTargetOffset(tagId);
+        
+        // Calculate error (difference from target offset)
+        double error = tx - targetOffset;
+        
+        // Only adjust if error is significant
+        if (Math.abs(error) > HardwareConfigAuto.LIMELIGHT_TOLERANCE) {
+            // Get current turret angle
+            double currentTurretAngle = getTurretAngle();
+            
+            // Calculate turret angle adjustment using proportional control
+            // Negative sign: positive error (target to right) means turret needs to turn right (negative angle)
+            double turretAdjustment = -error * HardwareConfigAuto.LIMELIGHT_KP;
+            
+            // Calculate new turret angle
+            double newTurretAngle = currentTurretAngle + turretAdjustment;
+            
+            // Set turret to new angle (clamping is handled by setTurretAngle)
+            setTurretAngle(newTurretAngle);
+            
+            return true;
+        }
+        
+        return false;
     }
     
     /**

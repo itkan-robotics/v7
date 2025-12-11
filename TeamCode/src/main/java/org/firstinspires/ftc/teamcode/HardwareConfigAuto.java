@@ -242,7 +242,7 @@ public class HardwareConfigAuto {
         lightServo = hwMap.get(ServoImplEx.class, "light_servo");
         lightServo.setPwmRange(new PwmControl.PwmRange(500, 2500));  // Set PWM range
 
-        unload();
+
     }
 
 
