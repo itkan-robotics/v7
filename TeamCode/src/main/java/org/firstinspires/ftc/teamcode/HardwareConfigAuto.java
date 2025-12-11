@@ -123,7 +123,7 @@ public class HardwareConfigAuto {
     public static final double SHOOTER_MAX_POWER = 1.0;
 
     // Limelight auto-align settings
-    public static final double LIMELIGHT_KP = 0.02;  // Proportional gain for alignment
+    public static final double LIMELIGHT_KP = 0.04;  // Proportional gain for alignment
     public static final double LIMELIGHT_MIN_POWER = 0.1;  // Minimum turn power
     public static final double LIMELIGHT_MAX_POWER = 0.5;  // Maximum turn power
     public static final double LIMELIGHT_TOLERANCE = 2.0;  // Degrees tolerance for alignment
