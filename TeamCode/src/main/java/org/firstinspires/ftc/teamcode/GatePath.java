@@ -34,7 +34,7 @@ public class GatePath extends LinearOpMode {
 
     // Flag for shooter control - must be updated continuously for bang-bang
     private boolean shooterRunning = false;
-    private boolean shootingStarted = false; // Track if shooting sequence has started
+    private boolean shooting = false; // Track if shooting sequence has started
 
     // AprilTag ID detected during init (21, 22, or 23)
     private int detectedTagId = 21;
@@ -89,7 +89,7 @@ public class GatePath extends LinearOpMode {
             robotFunctions.controlShooter(shooterRunning);
             
             // Auto-align turret while moving to shooting positions
-            if (pathState == 0 || pathState == 4 || pathState == 1 || pathState == 5) {
+            if (pathState == 0 || pathState == 1 || pathState == 5) {
                 robotFunctions.limelightTurretAutoAlign();
             }
 
@@ -100,6 +100,8 @@ public class GatePath extends LinearOpMode {
             panelsTelemetry.debug("Heading", follower.getPose().getHeading());
             panelsTelemetry.debug("SHOOTER VEL >>>>   ", robotFunctions.getShooterTPS());
             panelsTelemetry.debug("SHOOTER TARGET >>>> ", robotFunctions.getTargetShooterTPS());
+            panelsTelemetry.debug("intake full", robotFunctions.intakeFull());
+            panelsTelemetry.debug("Power Consumption", robotFunctions.getPowerConsumption());
             panelsTelemetry.update(telemetry);
         }
     }
@@ -129,18 +131,19 @@ public class GatePath extends LinearOpMode {
                                     new Pose(134.000, 60.000)
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(30))
+                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(30)) //-30 for first
                     .build();
 
             Path3 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(132.000, 60.000),
+                                    new Pose(134.000, 60.000),
                                     new Pose(100.000, 64.000),
                                     new Pose(96.000, 96.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(30), Math.toRadians(-90))
+                    .setTangentHeadingInterpolation()
+                    .setReversed()
                     .build();
         }
     }
@@ -165,7 +168,7 @@ public class GatePath extends LinearOpMode {
                 break;
             case 1:
                 // End of Path1: wait for shooter ready, then shoot
-                shootingStarted = false;
+                shooting = true;
                 shootTimer.reset();
                 break;
             case 2:
@@ -181,14 +184,16 @@ public class GatePath extends LinearOpMode {
                 break;
             case 4:
                 // Start Path3 back to shooting position
-                robotFunctions.ejectFourth();
-                shooterRunning = true;
+            //    robotFunctions.ejectFourth();
+                robotFunctions.setTurretAngle(-37);
+                shooterRunning = false;
                 follower.followPath(paths.Path3, true);
                 break;
             case 5:
                 // End of Path3: wait for shooter ready, then shoot
                 robotFunctions.stopIntakeSystem();
-                shootingStarted = false;
+                shooterRunning = true;
+                shooting = true;
                 shootTimer.reset();
                 break;
         }
@@ -208,13 +213,13 @@ public class GatePath extends LinearOpMode {
                 break;
             case 1:
                 // Wait for shooter ready, then open blocker and flush balls
-                if (!shootingStarted && robotFunctions.isShooterReady()) {
+                if (shooting && robotFunctions.isShooterReady()) {
                     robotFunctions.setBlocker(false);
                     robotFunctions.runIntakeSystem(HardwareConfigAuto.INTAKE_POWER);
                     shootTimer.reset();
-                    shootingStarted = true;
+                    shooting = false;
                 }
-                if (shootingStarted && shootTimer.seconds() >= SHOOT_TIME) {
+                if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
                     robotFunctions.setBlocker(true);
                     robotFunctions.stopIntakeSystem();
                     setPathState(2); // Shooting done, go to gate
@@ -228,25 +233,28 @@ public class GatePath extends LinearOpMode {
                 break;
             case 3:
                 // Wait for balls to fall into intake
-                if (IntakeTimer.seconds() > 1.0) {
+                if (!follower.isBusy() && (robotFunctions.intakeFull() || IntakeTimer.seconds() > 2)) {
                     setPathState(4); // Go back to shooting position
+
                 }
                 break;
             case 4:
                 // Following Path3 back to shooting position
                 if (!follower.isBusy()) {
                     setPathState(5); // Wait for shooter ready, then shoot
+
+
                 }
                 break;
             case 5:
                 // Wait for shooter ready, then open blocker and flush balls
-                if (!shootingStarted && robotFunctions.isShooterReady()) {
+                if (shooting && robotFunctions.isShooterReady()) {
                     robotFunctions.setBlocker(false);
                     robotFunctions.runIntakeSystem(HardwareConfigAuto.INTAKE_POWER);
                     shootTimer.reset();
-                    shootingStarted = true;
+                    shooting = false;
                 }
-                if (shootingStarted && shootTimer.seconds() >= SHOOT_TIME) {
+                if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
                     robotFunctions.setBlocker(true);
                     robotFunctions.stopIntakeSystem();
                     setPathState(2); // Loop back to gate

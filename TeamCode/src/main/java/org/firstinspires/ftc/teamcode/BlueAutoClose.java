@@ -113,6 +113,7 @@ public class BlueAutoClose extends LinearOpMode {
             panelsTelemetry.debug("Heading", follower.getPose().getHeading());
             panelsTelemetry.debug("Shooter Running", shooterRunning);
             panelsTelemetry.update(telemetry);
+            telemetry.update();
         }
     }
 

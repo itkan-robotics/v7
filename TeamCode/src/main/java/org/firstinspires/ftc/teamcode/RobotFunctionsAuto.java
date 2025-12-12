@@ -222,9 +222,9 @@ public class RobotFunctionsAuto {
         
         // Bang-bang control: full power if below target, zero if above
         if (currentTPS < targetTPS) {
-            power = HardwareConfigAuto.SHOOTER_MAX_POWER;
+            power = 0.8;//HardwareConfigAuto.SHOOTER_MAX_POWER
         } else {
-            power = 0.0;
+            power = 0.3;
         }
         
         // Apply power to shooter motor
@@ -287,6 +287,7 @@ public class RobotFunctionsAuto {
         }
         
         return speedReady && aligned;
+        //speedReady &&
     }
     
     /**
@@ -692,23 +693,13 @@ public class RobotFunctionsAuto {
     public double getPowerConsumption(){
         double batteryVoltage = robot.batteryVoltageSensor.getVoltage();
 
-        double totalCurrent = 0.0;
-        if (robot.intakeMotor instanceof DcMotorEx) {
-            totalCurrent += ((DcMotorEx) robot.intakeMotor).getCurrent(CurrentUnit.AMPS);
-        }
-        if (robot.transferMotor instanceof DcMotorEx) {
-            totalCurrent += ((DcMotorEx) robot.transferMotor).getCurrent(CurrentUnit.AMPS);
-        }
+        double totalCurrent = robot.intakeMotor.getCurrent(CurrentUnit.AMPS) + robot.transferMotor.getCurrent(CurrentUnit.AMPS);
 
         return totalCurrent * batteryVoltage;
     }
 
     public boolean intakeFull(){
-        if(getPowerConsumption() > 55){
-            return true;
-        }else{
-            return false;
-        }
+        return getPowerConsumption() > 62;
     }
     /**
      * Get Limelight tx value (horizontal offset)

@@ -21,8 +21,8 @@ public class HardwareConfigAuto {
 
 
     // Intake system
-    public DcMotor intakeMotor;
-    public DcMotor transferMotor;
+    public DcMotorEx intakeMotor;
+    public DcMotorEx transferMotor;
 
     // Shooter motor
     public DcMotorEx shooterMotor; // Single shooter with encoder
@@ -124,9 +124,9 @@ public class HardwareConfigAuto {
     public static final double SHOOTER_MAX_POWER = 1.0;
 
     // Limelight auto-align settings
-    public static final double LIMELIGHT_KP = 0.055;  // Proportional gain for alignment
+    public static final double LIMELIGHT_KP = 0.03;  // Proportional gain for alignment
     public static final double LIMELIGHT_MIN_POWER = 0.1;  // Minimum turn power
-    public static final double LIMELIGHT_MAX_POWER = 0.5;  // Maximum turn power
+    public static final double LIMELIGHT_MAX_POWER = 1;  // Maximum turn power
     public static final double LIMELIGHT_TOLERANCE = 4.0;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close (area >= 0.5)
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far (area < 0.5)
@@ -170,8 +170,8 @@ public class HardwareConfigAuto {
         hwMap = ahwMap;
 
         // Initialize intake system
-        intakeMotor = hwMap.get(DcMotor.class, "intake_motor");
-        transferMotor = hwMap.get(DcMotor.class, "transfer_motor");
+        intakeMotor = hwMap.get(DcMotorEx.class, "intake_motor");
+        transferMotor = hwMap.get(DcMotorEx.class, "transfer_motor");
         
         intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         transferMotor.setDirection(DcMotorSimple.Direction.FORWARD);
