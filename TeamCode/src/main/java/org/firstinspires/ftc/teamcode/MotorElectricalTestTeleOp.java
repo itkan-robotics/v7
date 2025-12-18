@@ -179,9 +179,9 @@ public class MotorElectricalTestTeleOp extends LinearOpMode {
             
             // Combined power consumption
             double totalCurrent = 0.0;
-            if (robot.intakeMotor instanceof DcMotorEx) {
-                totalCurrent += ((DcMotorEx) robot.intakeMotor).getCurrent(CurrentUnit.AMPS);
-            }
+//            if (robot.intakeMotor instanceof DcMotorEx) {
+//                totalCurrent += ((DcMotorEx) robot.intakeMotor).getCurrent(CurrentUnit.AMPS);
+//            }
             if (robot.transferMotor instanceof DcMotorEx) {
                 totalCurrent += ((DcMotorEx) robot.transferMotor).getCurrent(CurrentUnit.AMPS);
             }

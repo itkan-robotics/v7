@@ -233,7 +233,7 @@ public class GatePath extends LinearOpMode {
                 break;
             case 3:
                 // Wait for balls to fall into intake
-                if (!follower.isBusy() && (robotFunctions.intakeFull() || IntakeTimer.seconds() > 2)) {
+                if (!follower.isBusy() && (robotFunctions.intakeFull() || IntakeTimer.seconds() > 1.5)) {
                     setPathState(4); // Go back to shooting position
 
                 }

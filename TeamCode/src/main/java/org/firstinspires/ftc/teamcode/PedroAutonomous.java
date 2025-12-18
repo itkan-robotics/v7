@@ -371,7 +371,7 @@ public class PedroAutonomous extends LinearOpMode {
                 break;
             case 3:
                 // Following Path3
-                if (!follower.isBusy() && robotFunctions.intakeFull()) {
+                if (!follower.isBusy()) {
                         setPathState(4); // End of Path3
                 }
                 break;

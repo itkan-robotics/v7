@@ -692,8 +692,8 @@ public class RobotFunctionsAuto {
 
     public double getPowerConsumption(){
         double batteryVoltage = robot.batteryVoltageSensor.getVoltage();
-
-        double totalCurrent = robot.intakeMotor.getCurrent(CurrentUnit.AMPS) + robot.transferMotor.getCurrent(CurrentUnit.AMPS);
+//robot.intakeMotor.getCurrent(CurrentUnit.AMPS) +
+        double totalCurrent = robot.transferMotor.getCurrent(CurrentUnit.AMPS);
 
         return totalCurrent * batteryVoltage;
     }
