@@ -197,7 +197,7 @@ public class GatePath2 extends LinearOpMode {
             case 2:
                 // Shooting done after Path1, start Path2 with intake ON
                 robotFunctions.setBlocker(true);
-                shooterRunning = false;
+                shooterRunning = false ;
                 follower.followPath(paths.Path2, true);
                 robotFunctions.runIntakeSystem(HardwareConfigAuto.INTAKE_POWER);
                 break;
