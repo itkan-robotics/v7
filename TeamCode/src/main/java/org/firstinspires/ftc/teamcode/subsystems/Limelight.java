@@ -57,6 +57,10 @@ public class Limelight {
     public static final double TARGET_TX_DEFAULT = 0.5;
     public static final double TARGET_AREA_THRESHOLD = 0.5;
     
+    // Alignment tolerance for shooting (based on distance)
+    public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close (area >= 0.5)
+    public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far (area < 0.5)
+    
     // Limelight 3A FOV constants (default specifications)
     // These are the standard field of view values for Limelight 3A
     public static final double LIMELIGHT_HORIZONTAL_FOV = 59.6; // degrees - horizontal field of view
@@ -501,6 +505,71 @@ public class Limelight {
         }
         double tx = getTx();
         return tx > -TARGET_TX_THRESHOLD && tx < TARGET_TX_THRESHOLD;
+    }
+    
+    /**
+     * Check if robot is aligned for shooting (checks AprilTag alignment with goal offset)
+     * Only checks alignment for tags 20 or 24
+     * @return true if aligned for shooting
+     */
+    public boolean isAlignedForShooting() {
+        if (!hasTarget()) {
+            return false;
+        }
+        
+        int tagId = getAprilTagId();
+        if (tagId != 20 && tagId != 24) {
+            return false;
+        }
+        
+        // Calculate target offset (goal position behind tag)
+        double targetOffset = calculateTargetOffsetForShooting(tagId);
+        double currentTx = getTx();
+        double error = Math.abs(currentTx - targetOffset);
+        
+        // Use dynamic tolerance based on distance
+        double area = getTa();
+        double tolerance = (area >= TARGET_AREA_THRESHOLD) ? 
+                          SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE : 
+                          SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR;
+        
+        return error < tolerance;
+    }
+    
+    /**
+     * Calculate target TX angle to aim at the goal position behind the AprilTag
+     * @param tagId The detected AprilTag ID (20 or 24)
+     * @return Target tx offset in degrees
+     */
+    private double calculateTargetOffsetForShooting(int tagId) {
+        com.qualcomm.hardware.limelightvision.LLResult result = getLatestResult();
+        
+        if (result == null || !result.isValid()) {
+            return 0.0;
+        }
+        
+        if (result.getFiducialResults() == null || result.getFiducialResults().isEmpty()) {
+            return 0.0;
+        }
+        
+        com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult fiducial = result.getFiducialResults().get(0);
+        org.firstinspires.ftc.robotcore.external.navigation.Pose3D tagPose = fiducial.getTargetPoseCameraSpace();
+        
+        if (tagPose == null) {
+            return 0.0;
+        }
+        
+        double tagX = tagPose.getPosition().x;
+        double tagZ = tagPose.getPosition().z;
+        double tagYaw = tagPose.getOrientation().getYaw(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
+        
+        // Goal is 508mm (20 inches) behind the tag
+        double goalDistanceBehind = 508.0;
+        double goalX = tagX + goalDistanceBehind * Math.sin(tagYaw);
+        double goalZ = tagZ + goalDistanceBehind * Math.cos(tagYaw);
+        
+        double targetTx = Math.toDegrees(Math.atan2(goalX, goalZ));
+        return targetTx;
     }
     
     /**

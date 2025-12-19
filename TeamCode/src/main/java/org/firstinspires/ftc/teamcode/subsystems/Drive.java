@@ -172,6 +172,195 @@ public class Drive {
         isTeleopMode = false;
     }
 
+    // 18 PIECE AUTO PATHS
+    public static class PathsRed {
+
+        public PathChain startToShot;
+        public PathChain shotToTape2;
+        public PathChain tape2ToShot;
+        public PathChain shotToGate;
+        public PathChain gateToCycle;
+        public PathChain cycleToGate;
+        public PathChain gateToCycle2;
+        public PathChain cycleToTape1;
+        public PathChain tape1ToShot;
+        public PathChain shotToTape3;
+        public PathChain tape3ToShot;
+        public PathChain shotToEnd;
+
+        public PathsRed(Follower follower) {
+            startToShot = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(127.000, 113.500), new Pose(96.000, 96.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(-90))
+                    .build();
+
+            shotToTape2 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(96.000, 96.000),
+                                    new Pose(95.594, 65.709),
+                                    new Pose(123.381, 60.291)
+                            )
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+            tape2ToShot = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(123.381, 60.291),
+                                    new Pose(95.594, 65.709),
+                                    new Pose(96.000, 96.000)
+                            )
+                    )
+                    .setTangentHeadingInterpolation()
+                    .setReversed()
+                    .build();
+
+            shotToGate = follower
+                    .pathBuilder()
+                    // Straight forward in x direction until x=125
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(96.000, 96.000),
+                                    new Pose(125.000, 66.170)
+                            )
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(90)) // Forward in +X direction
+                    // Spline to gate with linear heading interpolation
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(125.000, 66.170),
+                                    new Pose(128.000, 63.085),
+                                    new Pose(131.000, 60.000)
+                            )
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(-45.8))
+                    .build();
+
+            gateToCycle2 = follower
+                    .pathBuilder()
+                    // Spline from gate to x=125 with linear heading interpolation
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(131.000, 60.000),
+                                    new Pose(128.000, 60.720),
+                                    new Pose(125.000, 61.440)
+                            )
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(-13.7), Math.toRadians(90))
+                    // Straight forward in x direction (moving in -X from 125 to 86)
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(125.000, 61.440),
+                                    new Pose(86.000, 71.000)
+                            )
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(-90)) // Forward in -X direction
+                    .build();
+
+            cycleToGate = follower
+                    .pathBuilder()
+                    // Straight forward in x direction until x=125
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(86.000, 71.000),
+                                    new Pose(125.000, 61.440)
+                            )
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(90)) // Forward in +X direction
+                    // Spline to gate with linear heading interpolation
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(125.000, 61.440),
+                                    new Pose(128.000, 60.720),
+                                    new Pose(131.000, 60.000)
+                            )
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(-13.7))
+                    .build();
+
+            gateToCycle = follower
+                    .pathBuilder()
+                    // Spline from gate to x=125 with linear heading interpolation
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(131.000, 60.000),
+                                    new Pose(128.000, 60.720),
+                                    new Pose(125.000, 61.440)
+                            )
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(-13.7), Math.toRadians(90))
+                    // Straight forward in x direction (moving in -X from 125 to 86)
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(125.000, 61.440),
+                                    new Pose(86.000, 71.000)
+                            )
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(-90)) // Forward in -X direction
+                    .build();
+
+            cycleToTape1 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(86.000, 71.000),
+                                    new Pose(87.730, 81.437),
+                                    new Pose(121.000, 84.000)
+                            )
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(-35), Math.toRadians(0))
+                    .build();
+
+            tape1ToShot = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(121.000, 84.000), new Pose(98.000, 84.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-90))
+                    .build();
+
+            shotToTape3 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(98.000, 84.000),
+                                    new Pose(98.740, 33.204),
+                                    new Pose(121.000, 35.000)
+                            )
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+            tape3ToShot = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(121.000, 35.000),
+                                    new Pose(98.740, 33.204),
+                                    new Pose(85.283, 71.650)
+                            )
+                    )
+                    .setTangentHeadingInterpolation()
+                    .setReversed()
+                    .build();
+
+            shotToEnd = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(85.283, 71.650), new Pose(127.400, 71.650))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(-71), Math.toRadians(-90))
+                    .build();
+        }
+    }
+
 
     /**
      * Gate Path autonomous paths (from GatePath.java)
@@ -192,14 +381,23 @@ public class Drive {
 
             Path2 = follower
                     .pathBuilder()
+                    // Straight forward in x direction until x=125
+                    .addPath(
+                            new BezierLine(
+                                    new Pose(96.000, 96.000),
+                                    new Pose(125.000, 66.790)
+                            )
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(90)) // Forward in +X direction
+                    // Spline to gate with linear heading interpolation
                     .addPath(
                             new BezierCurve(
-                                    new Pose(96.000, 96.000),
-                                    new Pose(100.000, 64.000),
+                                    new Pose(125.000, 66.790),
+                                    new Pose(129.500, 63.395),
                                     new Pose(134.000, 60.000)
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(30))
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(30))
                     .build();
 
             Path3 = follower

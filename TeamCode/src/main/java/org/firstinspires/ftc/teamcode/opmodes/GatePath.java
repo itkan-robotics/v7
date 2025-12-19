@@ -63,7 +63,7 @@ public class GatePath extends LinearOpMode {
         limelight.switchPipeline(0);
         shooter.blockShooter(); // Start with blocker closed
 
-        telemetry.addLine("INITIALIZED SUCCESSFULLY");
+            telemetry.addLine("INITIALIZED SUCCESSFULLY");
         telemetry.update();
         panelsTelemetry.update(telemetry);
 
@@ -87,11 +87,7 @@ public class GatePath extends LinearOpMode {
             autonomousPathUpdate(); // Update autonomous state machine
 
             // Update shooter target velocity from limelight
-            if (limelight.hasTarget()) {
-                targetShooterVelocity = limelight.getTargetShooterTPS();
-            } else {
-                targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
-            }
+            targetShooterVelocity = updateTargetShooterVelocity();
 
             // Continuously update shooter with bang-bang control
             shooter.updateShooter(shooterRunning, targetShooterVelocity);
@@ -115,6 +111,18 @@ public class GatePath extends LinearOpMode {
         }
     }
 
+    /**
+     * Update target shooter velocity from limelight
+     * @return Target velocity in ticks per second
+     */
+    private double updateTargetShooterVelocity() {
+        if (limelight.hasTarget()) {
+            return limelight.getTargetShooterTPS();
+        } else {
+            return Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
+        }
+    }
+    
     /**
      * Sets the path state and starts following the corresponding path
      * @param state the path state to transition to
@@ -175,7 +183,7 @@ public class GatePath extends LinearOpMode {
                 break;
             case 1:
                 // Wait for shooter ready, then open blocker and flush balls
-                if (shooting && shooter.isShooterReady(limelight, targetShooterVelocity)) {
+                if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
                     shooter.unblockShooter();
                     shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                     shootTimer.reset();
@@ -207,7 +215,7 @@ public class GatePath extends LinearOpMode {
                 break;
             case 5:
                 // Wait for shooter ready, then open blocker and flush balls
-                if (shooting && shooter.isShooterReady(limelight, targetShooterVelocity)) {
+                if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
                     shooter.unblockShooter();
                     shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                     shootTimer.reset();

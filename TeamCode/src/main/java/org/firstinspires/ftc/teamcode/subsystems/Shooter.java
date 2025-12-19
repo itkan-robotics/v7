@@ -15,7 +15,7 @@ public class Shooter {
     Servo blockerServo;
     Servo turretServo;  // Turret servo for aiming
     Servo indexingServo;  // Indexing servo for ball positioning
-    
+
     // Constants for shooter subsystem
     public static final double SHOOTER_MAX_POWER = 1.0;
     public static final double SHOOTER_MIN_POWER = 0.0;
@@ -352,31 +352,26 @@ public class Shooter {
     
     /**
      * Check if shooter is at target speed and aligned
+     * @param targetVelocity Target velocity in ticks per second
+     * @param isAligned Whether the robot is aligned for shooting
+     * @return True if shooter is within tolerance of target speed AND aligned
+     */
+    public boolean isShooterReady(double targetVelocity, boolean isAligned) {
+        double currentVelocity = getShooterVelocity();
+        boolean speedReady = Math.abs(currentVelocity - targetVelocity) <= VELOCITY_TOLERANCE;
+        return speedReady && isAligned;
+    }
+    
+    /**
+     * Check if shooter is at target speed and aligned (legacy method for compatibility)
      * @param limelight Limelight subsystem instance
      * @param targetVelocity Target velocity in ticks per second
      * @return True if shooter is within tolerance of target speed AND aligned
+     * @deprecated Use isShooterReady(double, boolean) with limelight.isAlignedForShooting() instead
      */
+    @Deprecated
     public boolean isShooterReady(Limelight limelight, double targetVelocity) {
-        double currentVelocity = getShooterVelocity();
-        boolean speedReady = Math.abs(currentVelocity - targetVelocity) <= VELOCITY_TOLERANCE;
-        
-        boolean aligned = false;
-        if (limelight.hasTarget()) {
-            int tagId = limelight.getAprilTagId();
-            if (tagId == 20 || tagId == 24) {
-                double currentTx = limelight.getTx();
-                double targetOffset = calculateTargetOffset(limelight, tagId);
-                double error = Math.abs(currentTx - targetOffset);
-                
-                double area = limelight.getTa();
-                double tolerance = (area >= APRILTAG_AREA_CLOSE_THRESHOLD) ? 
-                                  SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE : 
-                                  SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR;
-                aligned = error < tolerance;
-            }
-        }
-        
-        return speedReady && aligned;
+        return isShooterReady(targetVelocity, limelight.isAlignedForShooting());
     }
     
     /**
