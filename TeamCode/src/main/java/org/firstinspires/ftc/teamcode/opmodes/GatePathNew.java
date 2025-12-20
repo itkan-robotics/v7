@@ -38,6 +38,10 @@ public class GatePathNew extends LinearOpMode {
     // Timer for shooting phases
     private ElapsedTime shootTimer = new ElapsedTime();
     private static final double SHOOT_TIME = 1.5; // seconds for flushing balls
+    
+    // Timer to prevent race condition when starting new paths
+    private ElapsedTime pathTimer = new ElapsedTime();
+    private static final double MIN_PATH_TIME = 0.1; // minimum time before checking if path is done
 
     // Flag for shooter control - must be updated continuously for bang-bang
     private boolean shooterRunning = false;
@@ -116,7 +120,7 @@ public class GatePathNew extends LinearOpMode {
             panelsTelemetry.debug("Heading", currentPose.getHeading(AngleUnit.RADIANS));
             panelsTelemetry.debug("SHOOTER VEL >>>>   ", shooter.getShooterVelocity());
             panelsTelemetry.debug("SHOOTER TARGET >>>> ", targetShooterVelocity);
-            panelsTelemetry.debug("intake full", shooter.intakeFull());
+            panelsTelemetry.debug("intake full", shooter.issintakeFull());
             panelsTelemetry.debug("Power Consumption", shooter.getPowerConsumption());
             panelsTelemetry.update(telemetry);
         }
@@ -141,21 +145,21 @@ public class GatePathNew extends LinearOpMode {
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
+                            new BezierLine(
                                     new Pose(128.724, 113.263),
-                                    new Pose(101.000, 101.000),
-                                    new Pose(94.000, 86.000)
+                                   // new Pose(101.000, 101.000),
+                                    new Pose(92.000, 88.000)
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(270), Math.toRadians(-111))
+                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(-90))
                     .build();
 
             Path2 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(94.000, 86.000),
-                                    new Pose(82.000, 55.000),
+                                    new Pose(92.000, 88.000),
+                                    new Pose(92.000, 60.000),
                                     new Pose(123.000, 60.000)
                             )
                     )
@@ -167,22 +171,21 @@ public class GatePathNew extends LinearOpMode {
                     .addPath(
                             new BezierCurve(
                                     new Pose(123.000, 60.000),
-                                    new Pose(82.000, 55.000),
-                                    new Pose(94.000, 86.000)
+                                    new Pose(92.000, 60.000),
+                                    new Pose(92.000, 88.000)
                             )
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
                     .build();
-
             Path4 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(94.000, 86.000),
-                                    new Pose(82.000, 55.000),
-                                    new Pose(120.528, 43.777),
-                                    new Pose(135.617, 62.965)
+                                    new Pose(92.000, 88.000),
+                                    new Pose(92.000, 55.000),
+                                    new Pose(116.000, 54.000),
+                                    new Pose(132.75, 61.4)
                             )
                     )
                     .setTangentHeadingInterpolation()
@@ -192,41 +195,40 @@ public class GatePathNew extends LinearOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(135.617, 62.965),
-                                    new Pose(120.000, 43.700),
-                                    new Pose(81.035, 56.631),
-                                    new Pose(94.000, 86.000)
+                                    new Pose(131.705, 60.916),
+                                    new Pose(116.000, 54.000),
+                                    new Pose(92.000, 53.000),
+                                    new Pose(92.000, 88)
                             )
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
                     .build();
-
             Path6 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(94.000, 86.000),
-                                    new Pose(94.000, 86.000),
+                                    new Pose(92.000, 88.000),
+                                    new Pose(83.000, 88.000),
                                     new Pose(120.155, 83.084)
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-104), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(0))
                     .build();
 
             Path7 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(122.391, 83.084), new Pose(94.000, 86.000))
+                            new BezierLine(new Pose(120.155, 83.084), new Pose(92.000, 88.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-104))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-90))
                     .build();
 
             Path8 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(94.000, 86.000),
+                                    new Pose(92.000, 88.000),
                                     new Pose(83.000, 43.000),
                                     new Pose(132.000, 62.000)
                             )
@@ -240,7 +242,7 @@ public class GatePathNew extends LinearOpMode {
                             new BezierCurve(
                                     new Pose(132.000, 62.000),
                                     new Pose(83.000, 43.000),
-                                    new Pose(94.000, 86.000)
+                                    new Pose(92.000, 88.000)
                             )
                     )
                     .setTangentHeadingInterpolation()
@@ -251,7 +253,7 @@ public class GatePathNew extends LinearOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(94.000, 86.000),
+                                    new Pose(92.000, 88.000),
                                     new Pose(83.000, 43.000),
                                     new Pose(112.517, 54.768),
                                     new Pose(133.382, 23.472)
@@ -263,7 +265,7 @@ public class GatePathNew extends LinearOpMode {
             Path11 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(133.382, 23.472), new Pose(94.000, 86.000))
+                            new BezierLine(new Pose(133.382, 23.472), new Pose(92.000, 88.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -292,10 +294,11 @@ public class GatePathNew extends LinearOpMode {
         pathState = state;
         switch (pathState) {
             case 0:
-                shooter.setTurretAngle(-30);
+                shooter.setTurretAngle(-31);
                 shooter.setIndexerMiddle();
                 shooterRunning = true;
                 drive.followPathChain(paths.Path1, true);
+                pathTimer.reset();
                 break;
             case 1:
                 shooting = true;
@@ -307,6 +310,7 @@ public class GatePathNew extends LinearOpMode {
                 shooter.blockShooter();
                 shooterRunning = false;
                 drive.followPathChain(paths.Path2, true);
+                pathTimer.reset();
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                 break;
 
@@ -316,9 +320,10 @@ public class GatePathNew extends LinearOpMode {
                 break;
             case 4:
                 // Path2 done, wait for balls to fall
-                shooter.setTurretAngle(-23);
+                shooter.setTurretAngle(-45);
                 shooterRunning = true;
                 drive.followPathChain(paths.Path3, true);
+                pathTimer.reset();
                 break;
             case 5:
                 shooting = true;
@@ -328,6 +333,7 @@ public class GatePathNew extends LinearOpMode {
                 shooter.blockShooter();
                 shooterRunning = false;
                 drive.followPathChain(paths.Path4, true);
+                pathTimer.reset();
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                 break;
             case 7:
@@ -339,6 +345,7 @@ public class GatePathNew extends LinearOpMode {
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.Path5, true);
+                pathTimer.reset();
                 break;
 
             case 9:
@@ -349,8 +356,8 @@ public class GatePathNew extends LinearOpMode {
                 shooter.blockShooter();
                 shooterRunning = false;
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                drive.followPathChain(paths.Path6, true);
-
+                drive.followPathChain(paths.Path4, true);
+                pathTimer.reset();
                 break;
             case 11:
                 IntakeTimer.reset();
@@ -359,8 +366,8 @@ public class GatePathNew extends LinearOpMode {
             case 12:
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
-                drive.followPathChain(paths.Path7, true);
-
+                drive.followPathChain(paths.Path5, true);
+                pathTimer.reset();
                 break;
             case 13:
                 shooting = true;
@@ -370,7 +377,8 @@ public class GatePathNew extends LinearOpMode {
             case 14:
                 shooter.blockShooter();
                 shooterRunning = false;
-                drive.followPathChain(paths.Path4, true);
+                drive.followPathChain(paths.Path6, true);
+                pathTimer.reset();
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                 break;
             case 15:
@@ -380,7 +388,8 @@ public class GatePathNew extends LinearOpMode {
             case 16:
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
-                drive.followPathChain(paths.Path5, true);
+                drive.followPathChain(paths.Path7, true);
+                pathTimer.reset();
                 break;
             case 17:
                 shooting = true;
@@ -390,6 +399,7 @@ public class GatePathNew extends LinearOpMode {
                 shooter.blockShooter();
                 shooterRunning = false;
                 drive.followPathChain(paths.Path10, true);
+                pathTimer.reset();
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                 break;
             case 19:
@@ -400,6 +410,7 @@ public class GatePathNew extends LinearOpMode {
                 shooterRunning = true;
                 shooter.stopIntakeSystem();
                 drive.followPathChain(paths.Path11, true);
+                pathTimer.reset();
                 break;
             case 21:
                 shooting = true;
@@ -418,7 +429,7 @@ public class GatePathNew extends LinearOpMode {
         switch (pathState) {
             case 0:
                 // Following Path1 to shooting position
-                if (!drive.isBusy()) {
+                if (!drive.isBusy() && pathTimer.seconds() > 0.25) {
                     setPathState(1); // Wait for shooter ready, then shoot
                 }
                 break;
@@ -440,19 +451,19 @@ public class GatePathNew extends LinearOpMode {
                 break;
             case 2:
                 // Following Path2 to gate with intake
-                if (!drive.isBusy()) {
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(3); // Wait for shooter ready, then shoot
                 }
                 break;
             case 3:
                 // Wait for balls to fall into intake
-                if (!drive.isBusy() && (shooter.intakeFull() || IntakeTimer.seconds() > 1.75)) {
+                if (!drive.isBusy() && (shooter.intakeFull() || IntakeTimer.seconds() > 2.5)) {
                     setPathState(4); // Wait for shooter ready, then shoot
                 }
                 break;
             case 4:
                 // Following Path3 back to shooting position
-                if (!drive.isBusy()) {
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(5);
                 }
                 break;
@@ -474,20 +485,20 @@ public class GatePathNew extends LinearOpMode {
                 }
                 break;
             case 6:
-                // Following Path2 to gate with intake
-                if (!drive.isBusy()) {
+                // Following Path4 to gate with intake
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(7); // Wait for shooter ready, then shoot
                 }
                 break;
             case 7:
                 // Wait for shooter ready, then open blocker and flush balls
-                if (!drive.isBusy() && (shooter.intakeFull() || IntakeTimer.seconds() > 1.75)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2.5)) {
                     setPathState(8); // Wait for shooter ready, then shoot
                 }
                 break;
             case 8:
-                // Wait for shooter ready, then open blocker and flush balls
-                if (!drive.isBusy()) {
+                // Following Path5 back to shooting position
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(9);
                 }
                 break;
@@ -507,21 +518,21 @@ public class GatePathNew extends LinearOpMode {
                     }                  }
                 break;
             case 10:
-                // Following Path2 to gate with intake
-                if (!drive.isBusy()) {
+                // Following Path6 to gate with intake
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(11); // Wait for shooter ready, then shoot
                 }
                 break;
             case 11:
 
                 // Wait for shooter ready, then open blocker and flush balls
-                if (!drive.isBusy() && (shooter.intakeFull() || IntakeTimer.seconds() > 1.75)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)) {
                     setPathState(12); // Wait for shooter ready, then shoot
                 }
                 break;
             case 12:
-                // Wait for shooter ready, then open blocker and flush balls
-                if (!drive.isBusy()) {
+                // Following Path7 back to shooting position
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(13); // Wait for shooter ready, then shoot
                 }
                 break;
@@ -541,18 +552,19 @@ public class GatePathNew extends LinearOpMode {
                 }
                 break;
             case 14:
-                // Following Path2 to gate with intake
-                if (!drive.isBusy()) {
+                // Following Path4 to gate with intake
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(15); // Wait for shooter ready, then shoot
                 }
                 break;
             case 15:
-                if(!drive.isBusy() &&(shooter.intakeFull() || IntakeTimer.seconds() > 1.75)){
+                if(!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)){
                     setPathState(16); // Shooting done, go to gate
                 }
                 break;
             case 16:
-                if(!drive.isBusy()){
+                // Following Path5 back to shooting position
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(17);
                 }
                 break;
@@ -572,18 +584,38 @@ public class GatePathNew extends LinearOpMode {
                 }
                 break;
             case 18:
-                // Following Path2 to gate with intake
-                if (!drive.isBusy()) {
+                // Following Path10 to gate with intake
+                if (!drive.isBusy() && pathTimer.seconds() > MIN_PATH_TIME) {
                     setPathState(19); // Wait for shooter ready, then shoot
                 }
                 break;
             case 19:
-                if(!drive.isBusy() &&(shooter.intakeFull() || IntakeTimer.seconds() > 3)){
+                if(!drive.isBusy() &&(shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)){
                     setPathState(20);
                 }
                 break;
             case 20:
-                setPathState(21);
+                // Following Path11 back to shooting position
+                if (!drive.isBusy() && pathTimer.seconds() > 0.2) {
+                    setPathState(21);
+                }
+                break;
+            case 21:
+                // Final shooting sequence
+                if (!drive.isBusy()) {
+                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                        shooter.unblockShooter();
+                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                        shootTimer.reset();
+                        shooting = false;
+                    }
+                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
+                        shooter.blockShooter();
+                        shooter.stopIntakeSystem();
+                        shooterRunning = false;
+                        // Autonomous complete - stay in state 21
+                    }
+                }
                 break;
 
         }

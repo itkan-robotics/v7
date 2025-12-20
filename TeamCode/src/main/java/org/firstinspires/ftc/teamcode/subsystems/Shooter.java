@@ -2,16 +2,18 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorImpl;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 public class Shooter {
     DcMotorEx shooterMotor;  // Single shooter motor
     DcMotor intakeMotor;
-    DcMotor transferMotor;
+    DcMotorEx transferMotor;
     Servo blockerServo;
     Servo turretServo;  // Turret servo for aiming
     Servo indexingServo;  // Indexing servo for ball positioning
@@ -52,7 +54,7 @@ public class Shooter {
     public static final double TURRET_HOME_POSITION = 0.51;            // Center position (0 degrees turret angle)
     
     // Limelight auto-align settings for turret
-    public static final double LIMELIGHT_KP = 0.02;  // Proportional gain for alignment
+    public static final double LIMELIGHT_KP = 0.035;  // Proportional gain for alignment
     public static final double LIMELIGHT_TOLERANCE = 2.0;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far
@@ -80,8 +82,12 @@ public class Shooter {
 
     private IntakeState currentIntakeState = IntakeState.IDLE;
     private boolean isBlockedState = false;
+    private VoltageSensor batteryVoltageSensor;
+
 
     public Shooter(HardwareMap hardwareMap) {
+        batteryVoltageSensor = hardwareMap.voltageSensor.iterator().next();
+
         // Initialize shooter motor (single motor, from HardwareConfigAuto)
         shooterMotor = hardwareMap.get(DcMotorEx.class, "shooter_motor");
         shooterMotor.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -91,10 +97,10 @@ public class Shooter {
         
         // Initialize intake and transfer motors (from HardwareConfigAuto)
         intakeMotor = hardwareMap.get(DcMotor.class, "intake_motor");
-        transferMotor = hardwareMap.get(DcMotor.class, "transfer_motor");
+        transferMotor = hardwareMap.get(DcMotorEx.class, "transfer_motor");
         
         intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        transferMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        transferMotor.setDirection(DcMotorEx.Direction.FORWARD);
         
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         transferMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -392,12 +398,12 @@ public class Shooter {
      * Get power consumption of intake and transfer motors
      * @return Power consumption in Watts (estimated)
      */
-    public double getPowerConsumption() {
-        double intakeCurrent = getIntakeCurrent();
-        double transferCurrent = getTransferCurrent();
-        // Assuming 12V nominal battery voltage
-        return (intakeCurrent + transferCurrent) * 12.0;
-    }
+//    public double getPowerConsumption() {
+//        double intakeCurrent = getIntakeCurrent();
+//        double transferCurrent = getTransferCurrent();
+//        // Assuming 12V nominal battery voltage
+//        return (intakeCurrent + transferCurrent) * 12.0;
+//    }
 
     /**
      * Check if the shooter is currently blocked
@@ -466,6 +472,17 @@ public class Shooter {
             return ((DcMotorEx) intakeMotor).getCurrent(CurrentUnit.AMPS);
         }
         return 0.0;
+    }
+    public double getPowerConsumption(){
+        double batteryVoltage = batteryVoltageSensor.getVoltage();
+//robot.intakeMotor.getCurrent(CurrentUnit.AMPS) +
+        double totalCurrent = transferMotor.getCurrent(CurrentUnit.AMPS);
+
+        return totalCurrent * batteryVoltage;
+    }
+
+    public boolean issintakeFull(){
+        return getPowerConsumption() > 62;
     }
 
     /**
@@ -551,12 +568,13 @@ public class Shooter {
         
         // Estimate power consumption (current * voltage, normalized)
         // Assuming 12V nominal, max current around 2-3A for typical motors
-        double maxExpectedCurrent = 3.0; // Amperes
+        double maxExpectedCurrent = 3.5; // Amperes
         double intakePowerRatio = Math.min(intakeCurrent / maxExpectedCurrent, 1.0);
         double transferPowerRatio = Math.min(transferCurrent / maxExpectedCurrent, 1.0);
         
         // If power consumption is high, intake is likely full
-        return intakePowerRatio >= INTAKE_POWER_THRESHOLD || transferPowerRatio >= INTAKE_POWER_THRESHOLD;
+        //intakePowerRatio >= INTAKE_POWER_THRESHOLD ||
+        return transferPowerRatio >= INTAKE_POWER_THRESHOLD ;
     }
 
     /**
