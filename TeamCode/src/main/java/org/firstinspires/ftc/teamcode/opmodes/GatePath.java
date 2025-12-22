@@ -4,6 +4,7 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -16,6 +17,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
 @Autonomous(name = "Gate Path", group = "Autonomous")
 @Configurable // Panels
+@Disabled
 public class GatePath extends LinearOpMode {
     //ctrl + f new Pose, new Pose(144-
     //ctrl f Math.toRadians(, Math.toRadians(-180-

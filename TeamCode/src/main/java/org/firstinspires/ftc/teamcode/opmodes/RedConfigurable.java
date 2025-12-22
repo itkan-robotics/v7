@@ -103,10 +103,10 @@ public class RedConfigurable extends LinearOpMode {
                 shooterRunning = true;
                 shooter.setTurretAngle(-30);
                 drive.followPathChain(paths.startToShot, true);
-                nextPathState = 1;
                 break;
             case 1:
                 stateTimer.reset();
+                nextPathState = 2;
                 break;
             case 2:
                 shooterRunning = false;
