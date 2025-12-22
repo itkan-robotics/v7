@@ -22,7 +22,7 @@ public class Shooter {
     public static final double SHOOTER_MAX_POWER = 1.0;
     public static final double SHOOTER_MIN_POWER = 0.3;
     public static final double SHOOTER_HOLD_POWER = 0.5;
-    public static final double VELOCITY_TOLERANCE = 100.0; // ticks per second tolerance for bang-bang controller
+    public static final double VELOCITY_TOLERANCE = 50.0; // ticks per second tolerance for bang-bang controller
 
     // Shooter velocity constants
     public static final double MIN_SHOOTER_VELOCITY = 1250.0;
@@ -351,7 +351,7 @@ public class Shooter {
      * @param tagId The detected AprilTag ID (20 or 24)
      * @return Target tx offset in degrees
      */
-    private double calculateTargetOffset(Limelight limelight, int tagId) {
+    public double calculateTargetOffset(Limelight limelight, int tagId) {
         com.qualcomm.hardware.limelightvision.LLResult result = limelight.getLatestResult();
         
         if (result == null || !result.isValid()) {

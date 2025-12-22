@@ -94,21 +94,21 @@ public class NewAuto extends LinearOpMode {
         // === MAIN LOOP ===
         while (opModeIsActive()) {
             drive.update(); // Update Pedro Pathing
-           limelight.update(); // Update Limelight
+            //limelight.update(); // Update Limelight
             autonomousPathUpdate(); // Update autonomous state machine
 
             // Update shooter target velocity from limelight
-            targetShooterVelocity = updateTargetShooterVelocity();
+//            targetShooterVelocity = updateTargetShooterVelocity();
             shooter.updateShooter(shooterRunning, targetShooterVelocity);
 
-            Pose2D currentPose = drive.getCurrentPose();
-            panelsTelemetry.debug("X", currentPose.getX(DistanceUnit.INCH));
-            panelsTelemetry.debug("Y", currentPose.getY(DistanceUnit.INCH));
-            panelsTelemetry.debug("Heading", currentPose.getHeading(AngleUnit.RADIANS));
+            //Pose2D currentPose = drive.getCurrentPose();
+//            panelsTelemetry.debug("X", currentPose.getX(DistanceUnit.INCH));
+//            panelsTelemetry.debug("Y", currentPose.getY(DistanceUnit.INCH));
+//            panelsTelemetry.debug("Heading", currentPose.getHeading(AngleUnit.RADIANS));
             panelsTelemetry.debug("SHOOTER VEL >>>>   ", shooter.getShooterVelocity());
             panelsTelemetry.debug("SHOOTER TARGET >>>> ", targetShooterVelocity);
-            panelsTelemetry.debug("intake full", shooter.issintakeFull());
-            panelsTelemetry.debug("Power Consumption", shooter.getPowerConsumption());
+//            panelsTelemetry.debug("intake full", shooter.issintakeFull());
+//            panelsTelemetry.debug("Power Consumption", shooter.getPowerConsumption());
             panelsTelemetry.update(telemetry);
         }
     }
@@ -116,18 +116,19 @@ public class NewAuto extends LinearOpMode {
 
     public static class Paths {
 
-        public PathChain Path1;
-        public PathChain Path2;
-        public PathChain Path3;
-        public PathChain Path4;
-        public PathChain Path5;
-        public PathChain Path6;
-        public PathChain Path7;
-        public PathChain Path10;
-        public PathChain Path11;
+        public PathChain StartToShot;
+        public PathChain Shoot1ToTape2;
+        public PathChain Tape2ToSHoot2;
+        public PathChain Shoot2ToGate1;          // Intake run: (83.457, 72.093) → (117, 72)
+        public PathChain Gate1toGateLever;   // To shooting: (117, 72) → (133.568, 62.250)
+        public PathChain LeverToShoot3;          // Return from shooting: (133.568, 62.250) → (83.457, 72.093)
+        public PathChain Shoot3ToTape1;
+        public PathChain tape1ToShoot4;
+        public PathChain Shoot4toCorner;
+        public PathChain CornertoShoot5;
 
         public Paths(Follower follower) {
-            Path1 = follower
+            StartToShot = follower
                     .pathBuilder()
                     .addPath(
                             new BezierLine(new Pose(128.724, 113.263), new Pose(92.000, 88.000))
@@ -135,7 +136,7 @@ public class NewAuto extends LinearOpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(-90))
                     .build();
 
-            Path2 = follower
+            Shoot1ToTape2 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
@@ -147,64 +148,78 @@ public class NewAuto extends LinearOpMode {
                     .setTangentHeadingInterpolation()
                     .build();
 
-            Path3 = follower
+            Tape2ToSHoot2 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
                                     new Pose(123.000, 60.000),
                                     new Pose(92.000, 58.000),
                                     new Pose(87.000, 64.000),
-                                    new Pose(82.000, 72.000)
+                                    new Pose(83.457, 72.093)
                             )
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
                     .build();
 
-            Path4 = follower
+            // Intake run path - starts where Path3 ends
+            Shoot2ToGate1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
-                                    new Pose(82.000, 72.000),
-                                    new Pose(87.000, 64.000),
-                                    new Pose(115.000, 53.000),
-                                    new Pose(133.6, 62.5)
-                            )
+                            new BezierLine(new Pose(83.457, 72.093), new Pose(90.000, 72.000))
                     )
-                    .setTangentHeadingInterpolation()
+                    .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
+                    .addPath(
+                            new BezierLine(new Pose(90.000, 72.000), new Pose(117.000, 72.000))
+                    )
                     .build();
 
-            Path5 = follower
+            // To shooting position - starts where Path4 ends
+            Gate1toGateLever = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(133.6, 62.25),
-                                    new Pose(115.000, 53.000),
-                                    new Pose(87.000, 64.000),
-                                    new Pose(82.000, 72.000)
+                                    new Pose(117.000, 72.000),
+                                    new Pose(125.930, 60.000),
+                                    new Pose(133.568, 62.250)
                             )
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(45))
+                    .build();
+
+            // Return from shooting to intake start - starts where Path4ToShoot ends
+            LeverToShoot3 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(133.568, 62.250), new Pose(125.371, 63.524))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(-12))
+                    .addPath(
+                            new BezierLine(new Pose(125.371, 63.524), new Pose(83.457, 72.093))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
                     .build();
 
-            Path6 = follower
+            // Intake along upper path - starts where Path5 ends
+            Shoot3ToTape1 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(82.000, 72.000),
-                                    new Pose(87.000, 91.000),
-                                    new Pose(122, 86.25)
+                                    new Pose(83.457, 72.093),
+                                    new Pose(83.000, 91.000),
+                                    new Pose(121.646, 85.692)
                             )
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
                     .build();
 
-            Path7 = follower
+            // To shooting position from Path6
+            tape1ToShoot4 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(122, 86.25),
+                                    new Pose(121.646, 85.692),
                                     new Pose(94.000, 86.000),
                                     new Pose(94.000, 86.000)
                             )
@@ -212,7 +227,8 @@ public class NewAuto extends LinearOpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-45))
                     .build();
 
-            Path10 = follower
+            // Intake to far corner - starts where Path7 ends
+            Shoot4toCorner = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
@@ -225,10 +241,11 @@ public class NewAuto extends LinearOpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(-45))
                     .build();
 
-            Path11 = follower
+            // Return from far corner to shooting - starts where Path10 ends
+            CornertoShoot5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(133.382, 23.472), new Pose(82.000, 72.000))
+                            new BezierLine(new Pose(133.382, 23.472), new Pose(83.457, 71.907))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -248,6 +265,31 @@ public class NewAuto extends LinearOpMode {
         }
     }
 
+    private boolean limelightTurretAutoAlign() {
+        if (!limelight.hasTarget()) {
+            return false;
+        }
+
+        int tagId = limelight.getAprilTagId();
+        if (tagId != 24) {
+            return false;
+        }
+
+        double tx = limelight.getTx();
+        double targetOffset = shooter.calculateTargetOffset(limelight, tagId);
+        double error = tx - targetOffset;
+
+        if (Math.abs(error) > shooter.LIMELIGHT_TOLERANCE) {
+            double currentTurretAngle = shooter.getTurretAngle();
+            double turretAdjustment = -error * shooter.LIMELIGHT_KP;
+            double newTurretAngle = currentTurretAngle + turretAdjustment;
+            shooter.setTurretAngle(newTurretAngle);
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Sets the path state and starts following the corresponding path
      *
@@ -256,134 +298,188 @@ public class NewAuto extends LinearOpMode {
     public void setPathState(int state) {
         pathState = state;
         switch (pathState) {
+            // === FIRST SHOT ===
             case 0:
-                shooter.setTurretAngle(-31);
+                // StartToShot: Go to first shooting position
+                shooter.setTurretAngle(-34);
                 shooter.setIndexerMiddle();
                 shooterRunning = true;
-                drive.followPathChain(paths.Path1, true);
+                drive.followPathChain(paths.StartToShot, true);
                 pathTimer.reset();
                 break;
             case 1:
+                // Shoot at position 1
                 shooting = true;
                 shootTimer.reset();
                 break;
 
-            // End of Path1: wait for shooter ready, then shoot
+            // === TO TAPE 2 ===
             case 2:
+                // Shoot1ToTape2: Go to tape 2 with intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                drive.followPathChain(paths.Path2, true);
+                drive.followPathChain(paths.Shoot1ToTape2, true);
                 pathTimer.reset();
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                 break;
-
             case 3:
+                // Wait for intake at tape 2
                 IntakeTimer.reset();
-                // Shooting done after Path1, start Path2 with intake ON
                 break;
+
+            // === SECOND SHOT ===
             case 4:
-                // Path2 done, wait for balls to fall
-                shooter.setTurretAngle(-47);
+                // Tape2ToShoot2: Return to shooting position 2
+                shooter.setTurretAngle(-52);
                 shooterRunning = true;
-                drive.followPathChain(paths.Path3, true);
+                drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
                 break;
             case 5:
+                // Shoot at position 2
                 shooting = true;
                 shootTimer.reset();
-                break;
-            case 6:
-                shooter.blockShooter();
-                shooterRunning = false;
-                drive.followPathChain(paths.Path4, true);
-                pathTimer.reset();
-                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                break;
-            case 7:
-                IntakeTimer.reset();
-                shooterRunning = true;
-                // Shooting done after Path1, start Path2 with intake ON
-                break;
-            case 8:
-                shooter.stopIntakeSystem();
-                shooterRunning = true;
-                drive.followPathChain(paths.Path5, true);
-                pathTimer.reset();
                 break;
 
-            case 9:
-                shooting = true;
-                shootTimer.reset();
-                break;
-            case 10:
+            // === TO GATE 1 ===
+            case 6:
+                // Shoot2ToGate1: Close blocker, turn off shooter, run intake
                 shooter.blockShooter();
                 shooterRunning = false;
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                drive.followPathChain(paths.Path4, true);
+                drive.followPathChain(paths.Shoot2ToGate1, true);
+                pathTimer.reset();
+                break;
+            case 7:
+                // Wait for intake at gate 1
+                IntakeTimer.reset();
+                break;
+
+            // === TO GATE LEVER ===
+            case 8:
+                // Gate1toGateLever: Continue with intake on
+                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                drive.followPathChain(paths.Gate1toGateLever, true);
+                pathTimer.reset();
+                break;
+            case 9:
+                // Wait at lever
+                IntakeTimer.reset();
+                break;
+
+            // === THIRD SHOT ===
+            case 10:
+                // LeverToShoot3: Set turret to -52, stop intake, turn on shooter
+                shooter.setTurretAngle(-52);
+                shooter.stopIntakeSystem();
+                shooterRunning = true;
+                drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
                 break;
             case 11:
-                IntakeTimer.reset();
-                // Shooting done after Path1, start Path2 with intake ON
+                // Shoot at position 3
+                shooting = true;
+                shootTimer.reset();
                 break;
+
+            // === REPEAT: TO GATE 1 (second cycle) ===
             case 12:
-                shooter.stopIntakeSystem();
-                shooterRunning = true;
-                drive.followPathChain(paths.Path5, true);
+                // Shoot2ToGate1: Close blocker, turn off shooter, run intake
+                shooter.blockShooter();
+                shooterRunning = false;
+                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                drive.followPathChain(paths.Shoot2ToGate1, true);
                 pathTimer.reset();
                 break;
             case 13:
-                shooting = true;
-                shootTimer.reset();
-
+                // Wait for intake at gate 1
+                IntakeTimer.reset();
                 break;
+
+            // === TO GATE LEVER (second cycle) ===
             case 14:
-                shooter.blockShooter();
-                shooterRunning = false;
-                drive.followPathChain(paths.Path6, true);
-                pathTimer.reset();
+                // Gate1toGateLever: Continue with intake on
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                drive.followPathChain(paths.Gate1toGateLever, true);
+                pathTimer.reset();
                 break;
             case 15:
+                // Wait at lever
                 IntakeTimer.reset();
-                // Shooting done after Path1, start Path2 with intake ON
                 break;
-            case 16:
-                shooter.setTurretAngle(-45);
 
+            // === FOURTH SHOT ===
+            case 16:
+                // LeverToShoot3: Set turret to -52, stop intake, turn on shooter
+                shooter.setTurretAngle(-52);
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
-                drive.followPathChain(paths.Path7, true);
+                drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
                 break;
             case 17:
+                // Shoot at position 4
                 shooting = true;
                 shootTimer.reset();
                 break;
+
+            // === TO TAPE 1 ===
             case 18:
+                // Shoot3ToTape1: Go to tape 1 with intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                drive.followPathChain(paths.Path10, true);
-                pathTimer.reset();
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                drive.followPathChain(paths.Shoot3ToTape1, true);
+                pathTimer.reset();
                 break;
             case 19:
+                // Wait for intake at tape 1
                 IntakeTimer.reset();
-                // Shooting done after Path1, start Path2 with intake ON
                 break;
+
+            // === FIFTH SHOT ===
             case 20:
-                shooterRunning = true;
+                // tape1ToShoot4: Go to shooting position 4
+                shooter.setTurretAngle(-45);
                 shooter.stopIntakeSystem();
-                drive.followPathChain(paths.Path11, true);
+                shooterRunning = true;
+                drive.followPathChain(paths.tape1ToShoot4, true);
                 pathTimer.reset();
                 break;
             case 21:
+                // Shoot at position 5
                 shooting = true;
                 shootTimer.reset();
                 break;
 
-        }
+            // === TO CORNER ===
+            case 22:
+                // Shoot4toCorner: Go to corner with intake
+                shooter.blockShooter();
+                shooterRunning = false;
+                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                drive.followPathChain(paths.Shoot4toCorner, true);
+                pathTimer.reset();
+                break;
+            case 23:
+                // Wait for intake at corner
+                IntakeTimer.reset();
+                break;
 
+            // === FINAL SHOT ===
+            case 24:
+                // CornertoShoot5: Return to final shooting position
+                shooter.stopIntakeSystem();
+                shooterRunning = true;
+                drive.followPathChain(paths.CornertoShoot5, true);
+                pathTimer.reset();
+                break;
+            case 25:
+                // Final shoot
+                shooting = true;
+                shootTimer.reset();
+                break;
+        }
     }
 
     /**
@@ -392,17 +488,20 @@ public class NewAuto extends LinearOpMode {
      */
     public void autonomousPathUpdate() {
         switch (pathState) {
+            // === FIRST SHOT ===
             case 0:
-                // Following Path1 to shooting position
+                // Following StartToShot to first shooting position
                 if (!drive.isBusy()) {
-                    setPathState(1); // Wait for shooter ready, then shoot
+                    setPathState(1);
                 }
                 break;
             case 1:
-                // Wait for shooter ready, then open blocker and flush balls
+                // Shoot at position 1
                 if (!drive.isBusy()) {
-                    limelight.update(); // Update Limelight
-                    shooter.redlimelightTurretAutoAlign(limelight);
+                    limelight.update();
+                    limelightTurretAutoAlign();
+                    targetShooterVelocity = updateTargetShooterVelocity();
+                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
                     if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
                         shooter.unblockShooter();
                         shooter.runIntakeSystem(Shooter.INTAKE_POWER);
@@ -412,34 +511,39 @@ public class NewAuto extends LinearOpMode {
                     if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
                         shooter.blockShooter();
                         shooter.stopIntakeSystem();
-                        setPathState(2); // Shooting done, go to gate
+                        setPathState(2);
                     }
                 }
                 break;
+
+            // === TO TAPE 2 ===
             case 2:
-                // Following Path2 to gate with intake
+                // Following Shoot1ToTape2
                 if (!drive.isBusy()) {
-                    setPathState(3); // Wait for shooter ready, then shoot
+                    setPathState(3);
                 }
                 break;
             case 3:
-                // Wait for balls to fall into intake
+                // Wait for intake at tape 2
                 if (!drive.isBusy() && (shooter.intakeFull() || IntakeTimer.seconds() > 2)) {
-                    setPathState(4); // Wait for shooter ready, then shoot
+                    setPathState(4);
                 }
                 break;
+
+            // === SECOND SHOT ===
             case 4:
-                // Following Path3 back to shooting position
+                // Following Tape2ToShoot2
                 if (!drive.isBusy()) {
                     setPathState(5);
                 }
                 break;
             case 5:
-
-                // Wait for shooter ready, then open blocker and flush balls
+                // Shoot at position 2
                 if (!drive.isBusy()) {
-                    limelight.update(); // Update Limelight
-                    shooter.redlimelightTurretAutoAlign(limelight);
+                    limelight.update();
+                    limelightTurretAutoAlign();
+                    targetShooterVelocity = updateTargetShooterVelocity();
+                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
                     if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
                         shooter.unblockShooter();
                         shooter.runIntakeSystem(Shooter.INTAKE_POWER);
@@ -449,68 +553,53 @@ public class NewAuto extends LinearOpMode {
                     if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
                         shooter.blockShooter();
                         shooter.stopIntakeSystem();
-                        setPathState(6); // Shooting done, go to gate
+                        setPathState(6);
                     }
                 }
                 break;
+
+            // === TO GATE 1 ===
             case 6:
-                // Following Path4 to gate with intake
+                // Following Shoot2ToGate1
                 if (!drive.isBusy()) {
-                    setPathState(7); // Wait for shooter ready, then shoot
+                    setPathState(7);
                 }
                 break;
             case 7:
-                // Wait for shooter ready, then open blocker and flush balls
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2)) {
-                    setPathState(8); // Wait for shooter ready, then shoot
+                // Wait for intake at gate 1
+                if (!drive.isBusy()) {
+                    setPathState(8);
                 }
                 break;
+
+            // === TO GATE LEVER ===
             case 8:
-                // Following Path5 back to shooting position
+                // Following Gate1toGateLever
                 if (!drive.isBusy()) {
                     setPathState(9);
                 }
                 break;
             case 9:
-                // Wait for shooter ready, then open blocker and flush balls
-                if (!drive.isBusy()) {
-                    limelight.update(); // Update Limelight
-                    shooter.redlimelightTurretAutoAlign(limelight);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(10); // Shooting done, go to gate
-                    }                  }
+                // Wait at lever
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
+                    setPathState(10);
+                }
                 break;
+
+            // === THIRD SHOT ===
             case 10:
-                // Following Path6 to gate with intake
+                // Following LeverToShoot3
                 if (!drive.isBusy()) {
-                    setPathState(11); // Wait for shooter ready, then shoot
+                    setPathState(11);
                 }
                 break;
             case 11:
-
-                // Wait for shooter ready, then open blocker and flush balls
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)) {
-                    setPathState(12); // Wait for shooter ready, then shoot
-                }
-                break;
-            case 12:
-                // Following Path7 back to shooting position
+                // Shoot at position 3
                 if (!drive.isBusy()) {
-                    setPathState(13); // Wait for shooter ready, then shoot
-                }
-                break;
-            case 13:
-                if(!drive.isBusy()) {
-                    limelight.update(); // Update Limelight
-                    shooter.redlimelightTurretAutoAlign(limelight);
+                    limelight.update();
+                    limelightTurretAutoAlign();
+                    targetShooterVelocity = updateTargetShooterVelocity();
+                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
                     if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
                         shooter.unblockShooter();
                         shooter.runIntakeSystem(Shooter.INTAKE_POWER);
@@ -520,31 +609,53 @@ public class NewAuto extends LinearOpMode {
                     if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
                         shooter.blockShooter();
                         shooter.stopIntakeSystem();
-                        setPathState(14); // Shooting done, go to gate
+                        setPathState(12);
                     }
                 }
                 break;
-            case 14:
-                // Following Path4 to gate with intake
+
+            // === REPEAT: TO GATE 1 (second cycle) ===
+            case 12:
+                // Following Shoot2ToGate1
                 if (!drive.isBusy()) {
-                    setPathState(15); // Wait for shooter ready, then shoot
+                    setPathState(13);
+                }
+                break;
+            case 13:
+                // Wait for intake at gate 1
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2)) {
+                    setPathState(14);
+                }
+                break;
+
+            // === TO GATE LEVER (second cycle) ===
+            case 14:
+                // Following Gate1toGateLever
+                if (!drive.isBusy()) {
+                    setPathState(15);
                 }
                 break;
             case 15:
-                if(!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)){
-                    setPathState(16); // Shooting done, go to gate
+                // Wait at lever
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
+                    setPathState(16);
                 }
                 break;
+
+            // === FOURTH SHOT ===
             case 16:
-                // Following Path5 back to shooting position
+                // Following LeverToShoot3
                 if (!drive.isBusy()) {
                     setPathState(17);
                 }
                 break;
             case 17:
-                if(!drive.isBusy()){
-                    limelight.update(); // Update Limelight
-                    shooter.redlimelightTurretAutoAlign(limelight);
+                // Shoot at position 4
+                if (!drive.isBusy()) {
+                    limelight.update();
+                    limelightTurretAutoAlign();
+                    targetShooterVelocity = updateTargetShooterVelocity();
+                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
                     if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
                         shooter.unblockShooter();
                         shooter.runIntakeSystem(Shooter.INTAKE_POWER);
@@ -554,32 +665,81 @@ public class NewAuto extends LinearOpMode {
                     if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
                         shooter.blockShooter();
                         shooter.stopIntakeSystem();
-                        setPathState(18); // Shooting done, go to gate
+                        setPathState(18);
                     }
                 }
                 break;
+
+            // === TO TAPE 1 ===
             case 18:
-                // Following Path10 to gate with intake
+                // Following Shoot3ToTape1
                 if (!drive.isBusy()) {
-                    setPathState(19); // Wait for shooter ready, then shoot
+                    setPathState(19);
                 }
                 break;
             case 19:
-                if(!drive.isBusy() &&(shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)){
+                // Wait for intake at tape 1
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)) {
                     setPathState(20);
                 }
                 break;
+
+            // === FIFTH SHOT ===
             case 20:
-                // Following Path11 back to shooting position
+                // Following tape1ToShoot4
                 if (!drive.isBusy()) {
                     setPathState(21);
                 }
                 break;
             case 21:
+                // Shoot at position 5
+                if (!drive.isBusy()) {
+                    limelight.update();
+                    limelightTurretAutoAlign();
+                    targetShooterVelocity = updateTargetShooterVelocity();
+                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
+                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                        shooter.unblockShooter();
+                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                        shootTimer.reset();
+                        shooting = false;
+                    }
+                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
+                        shooter.blockShooter();
+                        shooter.stopIntakeSystem();
+                        setPathState(22);
+                    }
+                }
+                break;
+
+            // === TO CORNER ===
+            case 22:
+                // Following Shoot4toCorner
+                if (!drive.isBusy()) {
+                    setPathState(23);
+                }
+                break;
+            case 23:
+                // Wait for intake at corner
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)) {
+                    setPathState(24);
+                }
+                break;
+
+            // === FINAL SHOT ===
+            case 24:
+                // Following CornertoShoot5
+                if (!drive.isBusy()) {
+                    setPathState(25);
+                }
+                break;
+            case 25:
                 // Final shooting sequence
                 if (!drive.isBusy()) {
-                    limelight.update(); // Update Limelight
-                    shooter.redlimelightTurretAutoAlign(limelight);
+                    limelight.update();
+                    limelightTurretAutoAlign();
+                    targetShooterVelocity = updateTargetShooterVelocity();
+                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
                     if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
                         shooter.unblockShooter();
                         shooter.runIntakeSystem(Shooter.INTAKE_POWER);
@@ -590,11 +750,10 @@ public class NewAuto extends LinearOpMode {
                         shooter.blockShooter();
                         shooter.stopIntakeSystem();
                         shooterRunning = false;
-                        // Autonomous complete - stay in state 21
+                        // Autonomous complete - stay in state 25
                     }
                 }
                 break;
-
         }
     }
 }
