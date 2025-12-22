@@ -110,7 +110,7 @@ public class GatePathNew extends LinearOpMode {
                     pathState == 12 || pathState == 13 ||
                     pathState == 16 || pathState == 17 ||
                     pathState == 20 || pathState == 21) {
-                shooter.limelightTurretAutoAlign(limelight);
+                shooter.redlimelightTurretAutoAlign(limelight);
             }
 
             // Log values to Panels and Driver Station
