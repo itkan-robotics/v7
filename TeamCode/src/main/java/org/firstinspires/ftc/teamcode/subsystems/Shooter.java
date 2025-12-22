@@ -20,7 +20,7 @@ public class Shooter {
 
     // Constants for shooter subsystem
     public static final double SHOOTER_MAX_POWER = 1.0;
-    public static final double SHOOTER_MIN_POWER = 0.0;
+    public static final double SHOOTER_MIN_POWER = 0.3;
     public static final double SHOOTER_HOLD_POWER = 0.5;
     public static final double VELOCITY_TOLERANCE = 100.0; // ticks per second tolerance for bang-bang controller
 
@@ -74,13 +74,14 @@ public class Shooter {
 
     // Intake states
     public enum IntakeState {
+
         IDLE,           // No power, motors off
         HOLD,           // Small power to keep balls inside
         INTAKING,       // Intaking (negative power)
         OUTTAKING       // Outtaking/reversing (positive power)
     }
-
     private IntakeState currentIntakeState = IntakeState.IDLE;
+
     private boolean isBlockedState = false;
     private VoltageSensor batteryVoltageSensor;
 
@@ -123,6 +124,7 @@ public class Shooter {
      * Set the intake state (controls both intake and transfer motors)
      * @param state The intake state to set
      */
+
     public void setIntakeState(IntakeState state) {
         currentIntakeState = state;
         double power = 0.0;
@@ -295,13 +297,13 @@ public class Shooter {
      * @param limelight Limelight subsystem instance
      * @return True if alignment was performed, false if no valid target
      */
-    public boolean limelightTurretAutoAlign(Limelight limelight) {
+    public boolean redlimelightTurretAutoAlign(Limelight limelight) {
         if (!limelight.hasTarget()) {
             return false;
         }
         
         int tagId = limelight.getAprilTagId();
-        if (tagId != 20 && tagId != 24) {
+        if (tagId != 24) {
             return false;
         }
         
@@ -319,7 +321,30 @@ public class Shooter {
         
         return false;
     }
-    
+    public boolean bluelimelightTurretAutoAlign(Limelight limelight) {
+        if (!limelight.hasTarget()) {
+            return false;
+        }
+
+        int tagId = limelight.getAprilTagId();
+        if (tagId != 20) {
+            return false;
+        }
+
+        double tx = limelight.getTx();
+        double targetOffset = calculateTargetOffset(limelight, tagId);
+        double error = tx - targetOffset;
+
+        if (Math.abs(error) > LIMELIGHT_TOLERANCE) {
+            double currentTurretAngle = getTurretAngle();
+            double turretAdjustment = -error * LIMELIGHT_KP;
+            double newTurretAngle = currentTurretAngle + turretAdjustment;
+            setTurretAngle(newTurretAngle);
+            return true;
+        }
+
+        return false;
+    }
     /**
      * Calculate target TX angle to aim at the goal position behind the AprilTag
      * @param limelight Limelight subsystem instance

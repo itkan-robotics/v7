@@ -20,7 +20,7 @@ public class Constants {
             .forwardZeroPowerAcceleration(-43.91377304446386)
             .lateralZeroPowerAcceleration(-83.75208010806709)
             .useSecondaryDrivePIDF(true)
-            .useSecondaryHeadingPIDF(false)
+            .useSecondaryHeadingPIDF(true)
             .useSecondaryTranslationalPIDF(true)
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.035, 0, 0, 0.6, 0))
             .secondaryDrivePIDFCoefficients(new FilteredPIDFCoefficients(0.00005, 0, 0, 0.6, 0.025))
@@ -45,7 +45,7 @@ public class Constants {
     public static PathConstraints pathConstraints = new PathConstraints(
             0.95,
             100,
-            0.95,
+            0.935,
             1);
     public static PinpointConstants localizerConstants = new PinpointConstants()
             .forwardPodY(-55)

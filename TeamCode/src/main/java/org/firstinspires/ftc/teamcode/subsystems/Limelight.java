@@ -58,7 +58,8 @@ public class Limelight {
     public static final double TARGET_AREA_THRESHOLD = 0.5;
     
     // Alignment tolerance for shooting (based on distance)
-    public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close (area >= 0.5)
+    // IMPORTANT: These must be <= LIMELIGHT_TOLERANCE in Shooter.java (2.0) to prevent shooting before turret is aligned
+    public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 2.0;  // Degrees tolerance when close (area >= 0.5)
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far (area < 0.5)
     
     // Limelight 3A FOV constants (default specifications)

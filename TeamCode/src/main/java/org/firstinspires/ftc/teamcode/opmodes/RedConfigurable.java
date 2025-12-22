@@ -143,7 +143,7 @@ public class RedConfigurable extends LinearOpMode {
                     shooter.setIntakeState(Shooter.IntakeState.INTAKING);
                 }
 
-                shooter.limelightTurretAutoAlign(limelight);
+                shooter.redlimelightTurretAutoAlign(limelight);
                 break;
             case 2:
                 if(!drive.isBusy()) {

@@ -102,7 +102,7 @@ public class GatePath2 extends LinearOpMode {
 
             // Auto-align turret while moving to shooting positions
             if (pathState == 0 || pathState == 1 || pathState == 9) {
-                shooter.limelightTurretAutoAlign(limelight);
+                shooter.redlimelightTurretAutoAlign(limelight);
             }
 
             // Log values to Panels and Driver Station
