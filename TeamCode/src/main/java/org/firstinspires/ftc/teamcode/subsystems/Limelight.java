@@ -43,7 +43,7 @@ public class Limelight {
     public static final double MIN_TY = -3.5;  // ty at max shooting distance
     public static final double MAX_TY = 11;    // ty at min shooting distance
     public static final double TY_POWER = 0.43; // Power for ty normalization
-    public static final double VELOCITY_OFFSET = 0; // Reduced from 100 to lower overall velocity
+    public static final double VELOCITY_OFFSET = -50; // Reduced from 100 to lower overall velocity
     
     // Aim assist constants
     public static final double DEFAULT_KP = 0.02;
