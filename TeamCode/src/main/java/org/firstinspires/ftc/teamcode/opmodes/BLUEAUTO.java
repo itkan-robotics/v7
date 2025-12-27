@@ -54,7 +54,7 @@ public class BLUEAUTO extends LinearOpMode {
     private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
 
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 15.27554980595085, 113.26261319534282, AngleUnit.RADIANS, Math.toRadians(90));
+    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 15.27554980595085, 113.26261319534282, AngleUnit.RADIANS, Math.toRadians(-90));
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -136,7 +136,7 @@ public class BLUEAUTO extends LinearOpMode {
                     .addPath(
                             new BezierLine(new Pose(15.276, 113.263), new Pose(52.000, 88.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
+                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(-90))
                     .build();
 
             Shoot1ToTape2 = follower
@@ -257,7 +257,7 @@ public class BLUEAUTO extends LinearOpMode {
                     .addPath(
                             new BezierLine(new Pose(61.000, 74.000), new Pose(26, 70.603))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(225), Math.toRadians(90))
+                    .setLinearHeadingInterpolation(Math.toRadians(225), Math.toRadians(-90))
                     .build();
         }
     }
@@ -280,7 +280,7 @@ public class BLUEAUTO extends LinearOpMode {
         }
 
         int tagId = limelight.getAprilTagId();
-        if (tagId != 24) {
+        if (tagId != 20) {
             return false;
         }
 
@@ -310,7 +310,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === FIRST SHOT ===
             case 0:
                 // StartToShot: Go to first shooting position
-                shooter.setTurretAngle(34);
+                shooter.setTurretAngle(32);
                 shooter.setIndexerMiddle();
                 shooterRunning = true;
                 drive.followPathChain(paths.StartToShot, true);
@@ -339,7 +339,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === SECOND SHOT ===
             case 4:
                 // Tape2ToShoot2: Return to shooting position 2
-                shooter.setTurretAngle(83);
+                shooter.setTurretAngle(74);
                 shooterRunning = true;
                 drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
@@ -369,7 +369,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === THIRD SHOT ===
             case 8:
                 // LeverToShoot3: Set turret to 83, stop intake, turn on shooter
-                shooter.setTurretAngle(83);
+                shooter.setTurretAngle(77);
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
@@ -400,7 +400,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === FOURTH SHOT ===
             case 12:
                 // LeverToShoot3: Set turret to 83, stop intake, turn on shooter
-                shooter.setTurretAngle(83);
+                shooter.setTurretAngle(77);
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
@@ -431,7 +431,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === FIFTH SHOT ===
             case 16:
                 // tape1ToShoot4: Go to shooting position 4
-                shooter.setTurretAngle(81);
+                shooter.setTurretAngle(77);
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.tape1ToShoot4, true);
@@ -461,7 +461,7 @@ public class BLUEAUTO extends LinearOpMode {
 
             // === FINAL SHOT ===
             case 20:
-                shooter.setTurretAngle(60);
+                shooter.setTurretAngle(54);
 
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
