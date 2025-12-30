@@ -280,7 +280,7 @@ public class BLUEAUTO extends LinearOpMode {
         }
 
         int tagId = limelight.getAprilTagId();
-        if (tagId != 24) {
+        if (tagId != 20) {  // Blue alliance uses tag 20
             return false;
         }
 
@@ -346,7 +346,6 @@ public class BLUEAUTO extends LinearOpMode {
                 break;
             case 5:
                 shooter.setIndexerMiddle();
-
                 // Shoot at position 2
                 shooting = true;
                 shootTimer.reset();

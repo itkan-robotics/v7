@@ -54,7 +54,7 @@ public class REDAUTO extends LinearOpMode {
     private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
 
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 128.72445019404915, 113.26261319534282, AngleUnit.RADIANS, Math.toRadians(-90));
+    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 110, 135, AngleUnit.RADIANS, Math.toRadians(-90));
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -134,68 +134,60 @@ public class REDAUTO extends LinearOpMode {
             StartToShot = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(128.724, 113.263), new Pose(92.000, 88.000))
+                            new BezierLine(new Pose(110.000, 135.000), new Pose(107.568, 123.163))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(-90))
+                    .setLinearHeadingInterpolation(Math.toRadians(-90), Math.toRadians(13))
+
+                    .addPath(
+                            new BezierLine(new Pose(107.568, 123.163), new Pose(100.000, 85.000))
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(13))
                     .build();
 
             Shoot1ToTape2 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(92.000, 88.000),
-                                    new Pose(92.000, 59.000),
-                                    new Pose(123.000, 60.000)
+                                    new Pose(94.000, 78.000),
+                                    new Pose(95.000, 68.000),
+                                    new Pose(119.000, 59.000)
                             )
                     )
-                    .setTangentHeadingInterpolation()
+                    .setConstantHeadingInterpolation(Math.toRadians(-13))
                     .build();
 
             Tape2ToSHoot2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
-                                    new Pose(123.000, 60.000),
-                                    new Pose(92.000, 58.000),
-                                    new Pose(87.000, 64.000),
-                                    new Pose(83.457, 72.093)
-                            )
+                            new BezierLine(new Pose(119.000, 59.000), new Pose(87.000, 72.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-11))
+                    .setConstantHeadingInterpolation(Math.toRadians(-13))
                     .build();
-
             // Intake run path - starts where Path3 ends
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(83.457, 72.000), new Pose(91.840, 70.000))
+                            new BezierLine(new Pose(87.000, 72.000), new Pose(106.000, 62.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(-11))
+                    .setLinearHeadingInterpolation(Math.toRadians(-13), Math.toRadians(25))
 
                     .addPath(
-                            new BezierLine(new Pose(91.840, 70.000), new Pose(100, 66.00))
+                            new BezierLine(new Pose(106.000, 62.000), new Pose(132.750, 62.000))
                     )
-                    .setTangentHeadingInterpolation()
-
-                    .addPath(
-                            new BezierCurve(
-                                    new Pose(100.000, 66.00),
-                                    new Pose(117.000, 56.000),
-                                    new Pose(134.75, 62)
-                            )
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(-11), Math.toRadians(30))
+                    .setConstantHeadingInterpolation(Math.toRadians(25))
                     .build();
 
             // Return from lever to shooting position
             LeverToShoot3 = follower
+
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(133, 62.5), new Pose(111.586, 65.014))
+                            new BezierLine(new Pose(132.750, 62.000), new Pose(120.000, 65.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(30), Math.toRadians(-11))
+                    .setLinearHeadingInterpolation(Math.toRadians(25), Math.toRadians(-12))
+
                     .addPath(
-                            new BezierLine(new Pose(125.371, 63.524), new Pose(83.457, 72.093))
+                            new BezierLine(new Pose(120.000, 65.000), new Pose(87.000, 72.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -205,38 +197,36 @@ public class REDAUTO extends LinearOpMode {
             Shoot3ToTape1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
-                                    new Pose(83.457, 72.093),
-                                    new Pose(83.000, 91.000),
-                                    new Pose(121.646, 85.692)
-                            )
+                            new BezierLine(new Pose(87.000, 72.000), new Pose(125.000, 84.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-11), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(25), Math.toRadians(0))
                     .build();
 
             // To shooting position from Path6
             tape1ToShoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
-                                    new Pose(121.646, 85.692),
-                                    new Pose(94.000, 86.000),
-                                    new Pose(94.000, 86.000)
-                            )
+                            new BezierLine(new Pose(125.000, 84.000), new Pose(105.000, 85.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-11))
+                    .setTangentHeadingInterpolation()
+                    .setReversed()
+
+                    .addPath(
+                            new BezierLine(new Pose(105.000, 85.000), new Pose(100.000, 85.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(21), Math.toRadians(0))
                     .build();
 
             // Intake to far corner - starts where Path7 ends
             Shoot4toCorner = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(94.000, 86.000), new Pose(90.536, 63.151))
+                            new BezierLine(new Pose(100.000, 85.000), new Pose(104.507, 73.397))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-11), Math.toRadians(-45))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-69))
 
                     .addPath(
-                            new BezierLine(new Pose(90.536, 63.151), new Pose(134, 21))
+                            new BezierLine(new Pose(104.507, 73.397), new Pose(118.000, 39.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -246,7 +236,12 @@ public class REDAUTO extends LinearOpMode {
             CornertoShoot5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(134, 21), new Pose(83, 74.000))
+                            new BezierLine(new Pose(118.000, 39.000), new Pose(109.000, 48.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(-69), Math.toRadians(-41))
+
+                    .addPath(
+                            new BezierLine(new Pose(109.000, 48.000), new Pose(85.000, 73.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -255,7 +250,7 @@ public class REDAUTO extends LinearOpMode {
             End = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(83.000, 74.000), new Pose(118, 70.603))
+                            new BezierLine(new Pose(85.000, 73.000), new Pose(116, 70.603))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(-90))
                     .build();
@@ -318,7 +313,7 @@ public class REDAUTO extends LinearOpMode {
                 break;
             case 1:
                 // Shoot at position 1
-                shooting = true;
+            //    shooting = true;
                 shootTimer.reset();
                 break;
 
@@ -348,7 +343,7 @@ public class REDAUTO extends LinearOpMode {
                 shooter.setIndexerMiddle();
 
                 // Shoot at position 2
-                shooting = true;
+            //    shooting = true;
                 shootTimer.reset();
                 break;
 
@@ -379,7 +374,7 @@ public class REDAUTO extends LinearOpMode {
                 shooter.setIndexerMiddle();
 
                 // Shoot at position 3
-                shooting = true;
+              //  shooting = true;
                 shootTimer.reset();
                 break;
 
@@ -410,7 +405,7 @@ public class REDAUTO extends LinearOpMode {
                 shooter.setIndexerMiddle();
 
                 // Shoot at position 4
-                shooting = true;
+         //       shooting = true;
                 shootTimer.reset();
                 break;
 
@@ -441,7 +436,7 @@ public class REDAUTO extends LinearOpMode {
                 shooter.setIndexerMiddle();
 
                 // Shoot at position 5
-                shooting = true;
+             //   shooting = true;
                 shootTimer.reset();
                 break;
 
@@ -472,7 +467,7 @@ public class REDAUTO extends LinearOpMode {
             case 21:
                 shooter.setIndexerMiddle();
                 // Final shoot
-                shooting = true;
+            //    shooting = true;
                 shootTimer.reset();
                 break;
 

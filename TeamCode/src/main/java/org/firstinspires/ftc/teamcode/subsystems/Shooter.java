@@ -15,7 +15,8 @@ public class Shooter {
     DcMotor intakeMotor;
     DcMotorEx transferMotor;
     Servo blockerServo;
-    Servo turretServo;  // Turret servo for aiming
+    Servo turretServo;   // Turret servo 1 for aiming
+    Servo turretServo2;  // Turret servo 2 for aiming (both move together)
     Servo indexingServo;  // Indexing servo for ball positioning
 
     // Constants for shooter subsystem
@@ -111,9 +112,11 @@ public class Shooter {
         blockerServo.setPosition(BLOCKER_BLOCK_POSITION);
         isBlockedState = true;
         
-        // Initialize turret servo
+        // Initialize turret servos (both move together)
         turretServo = hardwareMap.get(Servo.class, "turret_servo");
+        turretServo2 = hardwareMap.get(Servo.class, "turret_servo2");
         turretServo.setPosition(TURRET_HOME_POSITION);
+        turretServo2.setPosition(TURRET_HOME_POSITION);
         
         // Initialize indexing servo
         indexingServo = hardwareMap.get(Servo.class, "indexing_servo");
@@ -264,6 +267,7 @@ public class Shooter {
         }
         
         turretServo.setPosition(servoPosition);
+        turretServo2.setPosition(servoPosition);
     }
     
     /**
@@ -271,6 +275,7 @@ public class Shooter {
      */
     public void setTurretHome() {
         turretServo.setPosition(TURRET_HOME_POSITION);
+        turretServo2.setPosition(TURRET_HOME_POSITION);
     }
     
     /**
