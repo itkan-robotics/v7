@@ -15,8 +15,7 @@ public class Shooter {
     DcMotor intakeMotor;
     DcMotorEx transferMotor;
     Servo blockerServo;
-    Servo turretServo;   // Turret servo 1 for aiming
-    Servo turretServo2;  // Turret servo 2 for aiming (both move together)
+    Servo turretServo;   // Turret servo for aiming
     Servo indexingServo;  // Indexing servo for ball positioning
 
     // Constants for shooter subsystem
@@ -32,12 +31,12 @@ public class Shooter {
     public static final double MIN_SHOOTER_VELOCITY_FOR_FEED = 1250.0;
 
     // Servo position constants
-    public static final double BLOCKER_BLOCK_POSITION = 0.35;
-    public static final double BLOCKER_UNBLOCK_POSITION = 0.65;
+    public static final double BLOCKER_BLOCK_POSITION = 0.3;
+    public static final double BLOCKER_UNBLOCK_POSITION = 0.58;
     
     // Indexer servo positions
-    public static final double INDEXER_INDEXED = 0.45;   // Indexed position (ball ready)
-    public static final double INDEXER_MIDDLE = 0.925;   // Middle/default position
+    public static final double INDEXER_INDEXED = 0.05;   // Indexed position (ball ready)
+    public static final double INDEXER_MIDDLE = 0.55;   // Middle/default position
 
     // Intake and transfer power constants
     public static final double INTAKE_POWER = 1.0;
@@ -55,8 +54,8 @@ public class Shooter {
     public static final double TURRET_HOME_POSITION = 0.51;            // Center position (0 degrees turret angle)
     
     // Limelight auto-align settings for turret
-    public static final double LIMELIGHT_KP = 0.035;  // Proportional gain for alignment
-    public static final double LIMELIGHT_TOLERANCE = 2.0;  // Degrees tolerance for alignment
+    public static final double LIMELIGHT_KP = 0.04;  // Proportional gain for alignment
+    public static final double LIMELIGHT_TOLERANCE = 5;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far
     public static final double APRILTAG_AREA_CLOSE_THRESHOLD = 0.5;  // Area threshold for close vs far distance
@@ -92,7 +91,7 @@ public class Shooter {
 
         // Initialize shooter motor (single motor, from HardwareConfigAuto)
         shooterMotor = hardwareMap.get(DcMotorEx.class, "shooter_motor");
-        shooterMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        shooterMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         shooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shooterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -112,11 +111,9 @@ public class Shooter {
         blockerServo.setPosition(BLOCKER_BLOCK_POSITION);
         isBlockedState = true;
         
-        // Initialize turret servos (both move together)
+        // Initialize turret servo
         turretServo = hardwareMap.get(Servo.class, "turret_servo");
-        turretServo2 = hardwareMap.get(Servo.class, "turret_servo2");
         turretServo.setPosition(TURRET_HOME_POSITION);
-        turretServo2.setPosition(TURRET_HOME_POSITION);
         
         // Initialize indexing servo
         indexingServo = hardwareMap.get(Servo.class, "indexing_servo");
@@ -267,7 +264,6 @@ public class Shooter {
         }
         
         turretServo.setPosition(servoPosition);
-        turretServo2.setPosition(servoPosition);
     }
     
     /**
@@ -275,7 +271,6 @@ public class Shooter {
      */
     public void setTurretHome() {
         turretServo.setPosition(TURRET_HOME_POSITION);
-        turretServo2.setPosition(TURRET_HOME_POSITION);
     }
     
     /**
@@ -512,7 +507,7 @@ public class Shooter {
     }
 
     public boolean issintakeFull(){
-        return getPowerConsumption() > 62;
+        return getPowerConsumption() > 60;
     }
 
     /**

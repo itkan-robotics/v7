@@ -101,12 +101,10 @@ public class BLUEAUTO extends LinearOpMode {
 //            targetShooterVelocity = updateTargetShooterVelocity();
             shooter.updateShooter(shooterRunning, targetShooterVelocity);
 
-<<<<<<<< HEAD:TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/BLUEAUTO.java
             //Pose2D currentPose = drive.getCurrentPose();
 //            panelsTelemetry.debug("X", currentPose.getX(DistanceUnit.INCH));
 //            panelsTelemetry.debug("Y", currentPose.getY(DistanceUnit.INCH));
 //            panelsTelemetry.debug("Heading", currentPose.getHeading(AngleUnit.RADIANS));
-========
             // Auto-align turret while moving to shooting positions
             if (pathState == 0 || pathState == 1 ||
                     pathState == 4 || pathState == 5 ||
@@ -119,11 +117,10 @@ public class BLUEAUTO extends LinearOpMode {
 
             // Log values to Panels and Driver Station
             panelsTelemetry.debug("Path State", pathState);
-            Pose2D currentPose = drive.getCurrentPose();
-            panelsTelemetry.debug("X", currentPose.getX(DistanceUnit.INCH));
-            panelsTelemetry.debug("Y", currentPose.getY(DistanceUnit.INCH));
-            panelsTelemetry.debug("Heading", currentPose.getHeading(AngleUnit.RADIANS));
->>>>>>>> origin/v8-Solar:TeamCode/src/main/java/org/firstinspires/ftc/teamcode/opmodes/GatePathNew.java
+//            Pose2D currentPose = drive.getCurrentPose();
+//            panelsTelemetry.debug("X", currentPose.getX(DistanceUnit.INCH));
+//            panelsTelemetry.debug("Y", currentPose.getY(DistanceUnit.INCH));
+//            panelsTelemetry.debug("Heading", currentPose.getHeading(AngleUnit.RADIANS));
             panelsTelemetry.debug("SHOOTER VEL >>>>   ", shooter.getShooterVelocity());
             panelsTelemetry.debug("SHOOTER TARGET >>>> ", targetShooterVelocity);
 

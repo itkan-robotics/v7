@@ -23,17 +23,17 @@ public class Limelight {
 
     public static final double SHOOTER_TPS_1 = 1350.0;  // Closest
     public static final double SHOOTER_TPS_2 = 1450.0;
-    public static final double SHOOTER_TPS_3 = 1550.0;
+    public static final double SHOOTER_TPS_3 = 1510.0;
     public static final double SHOOTER_TPS_4 = 1650.0;
     public static final double SHOOTER_TPS_5 = 1750.0;
     public static final double SHOOTER_TPS_6 = 1800.0;  // Farthest
 
     public static final double SHOOTER_MIN_TPS = 1250.0;
-    public static final double SHOOTER_MAX_TPS = 2000.0;
+    public static final double SHOOTER_MAX_TPS = 1900;
     public static final double SHOOTER_DEFAULT_TPS = 1750.0;
 
     // Alignment thresholds
-    public static final double ALIGNMENT_TOLERANCE_CLOSE = 10.0;
+    public static final double ALIGNMENT_TOLERANCE_CLOSE = 2;
     public static final double ALIGNMENT_TOLERANCE_FAR = 5.0;
     public static final double AREA_CLOSE_THRESHOLD = 0.5;
 
@@ -173,7 +173,7 @@ public class Limelight {
      */
     public boolean isAlignedForShooting() {
         if (!hasTarget()) {
-            return true; // If no target, allow shooting anyway
+            return false; // No target = not aligned, wait for AprilTag
         }
         double tx = Math.abs(getTx());
         double area = getTa();
