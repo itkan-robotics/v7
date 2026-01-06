@@ -112,7 +112,7 @@ public class BLUEAUTO extends LinearOpMode {
                     pathState == 12 || pathState == 13 ||
                     pathState == 16 || pathState == 17 ||
                     pathState == 20 || pathState == 21) {
-                shooter.redlimelightTurretAutoAlign(limelight);
+//                shooter.redlimelightTurretAutoAlign();
             }
 
             // Log values to Panels and Driver Station
@@ -301,7 +301,7 @@ public class BLUEAUTO extends LinearOpMode {
         }
 
         double tx = limelight.getTx();
-        double targetOffset = shooter.calculateTargetOffset(limelight, tagId);
+        double targetOffset = limelight.calculateTargetOffset();
         double error = tx - targetOffset;
 
         if (Math.abs(error) > shooter.LIMELIGHT_TOLERANCE) {

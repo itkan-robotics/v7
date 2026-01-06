@@ -20,7 +20,7 @@ public class Shooter {
 
     // Constants for shooter subsystem
     public static final double SHOOTER_MAX_POWER = 1.0;
-    public static final double SHOOTER_MIN_POWER = 0.3;
+    public static final double SHOOTER_MIN_POWER = 0.0;
     public static final double SHOOTER_HOLD_POWER = 0.5;
     public static final double VELOCITY_TOLERANCE = 50.0; // ticks per second tolerance for bang-bang controller
 
@@ -55,7 +55,7 @@ public class Shooter {
     
     // Limelight auto-align settings for turret
     public static final double LIMELIGHT_KP = 0.04;  // Proportional gain for alignment
-    public static final double LIMELIGHT_TOLERANCE = 5;  // Degrees tolerance for alignment
+    public static final double LIMELIGHT_TOLERANCE = 3;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far
     public static final double APRILTAG_AREA_CLOSE_THRESHOLD = 0.5;  // Area threshold for close vs far distance
@@ -292,96 +292,6 @@ public class Shooter {
     }
     
     /**
-     * Auto-align turret to target using Limelight tx value
-     * Only aligns to AprilTag IDs 20 or 24
-     * @param limelight Limelight subsystem instance
-     * @return True if alignment was performed, false if no valid target
-     */
-    public boolean redlimelightTurretAutoAlign(Limelight limelight) {
-        if (!limelight.hasTarget()) {
-            return false;
-        }
-        
-        int tagId = limelight.getAprilTagId();
-        if (tagId != 24) {
-            return false;
-        }
-        
-        double tx = limelight.getTx();
-        double targetOffset = calculateTargetOffset(limelight, tagId);
-        double error = tx - targetOffset;
-        
-        if (Math.abs(error) > LIMELIGHT_TOLERANCE) {
-            double currentTurretAngle = getTurretAngle();
-            double turretAdjustment = -error * LIMELIGHT_KP;
-            double newTurretAngle = currentTurretAngle + turretAdjustment;
-            setTurretAngle(newTurretAngle);
-            return true;
-        }
-        
-        return false;
-    }
-    public boolean bluelimelightTurretAutoAlign(Limelight limelight) {
-        if (!limelight.hasTarget()) {
-            return false;
-        }
-
-        int tagId = limelight.getAprilTagId();
-        if (tagId != 20) {
-            return false;
-        }
-
-        double tx = limelight.getTx();
-        double targetOffset = calculateTargetOffset(limelight, tagId);
-        double error = tx - targetOffset;
-
-        if (Math.abs(error) > LIMELIGHT_TOLERANCE) {
-            double currentTurretAngle = getTurretAngle();
-            double turretAdjustment = -error * LIMELIGHT_KP;
-            double newTurretAngle = currentTurretAngle + turretAdjustment;
-            setTurretAngle(newTurretAngle);
-            return true;
-        }
-
-        return false;
-    }
-    /**
-     * Calculate target TX angle to aim at the goal position behind the AprilTag
-     * @param limelight Limelight subsystem instance
-     * @param tagId The detected AprilTag ID (20 or 24)
-     * @return Target tx offset in degrees
-     */
-    public double calculateTargetOffset(Limelight limelight, int tagId) {
-        com.qualcomm.hardware.limelightvision.LLResult result = limelight.getLatestResult();
-        
-        if (result == null || !result.isValid()) {
-            return 0.0;
-        }
-        
-        if (result.getFiducialResults() == null || result.getFiducialResults().isEmpty()) {
-            return 0.0;
-        }
-        
-        com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult fiducial = result.getFiducialResults().get(0);
-        org.firstinspires.ftc.robotcore.external.navigation.Pose3D tagPose = fiducial.getTargetPoseCameraSpace();
-        
-        if (tagPose == null) {
-            return 0.0;
-        }
-        
-        double tagX = tagPose.getPosition().x;
-        double tagZ = tagPose.getPosition().z;
-        double tagYaw = tagPose.getOrientation().getYaw(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
-        
-        double goalDistanceBehind = APRILTAG_GOAL_OFFSET_MM;
-        double goalX = tagX + goalDistanceBehind * Math.sin(tagYaw);
-        double goalZ = tagZ + goalDistanceBehind * Math.cos(tagYaw);
-        
-        double targetTx = Math.toDegrees(Math.atan2(goalX, goalZ));
-        return targetTx;
-    }
-    
-    /**
      * Check if shooter is at target speed and aligned
      * @param targetVelocity Target velocity in ticks per second
      * @param isAligned Whether the robot is aligned for shooting
@@ -452,7 +362,7 @@ public class Shooter {
         double currentVelocity = getShooterVelocity();
         double power;
 
-        if (currentVelocity < (targetVelocity - VELOCITY_TOLERANCE)) {
+        if (currentVelocity < (targetVelocity)) {
             // Below target velocity, apply max power
             power = SHOOTER_MAX_POWER;
         } else {

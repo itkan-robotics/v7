@@ -1,8 +1,11 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.limelightvision.LLResult;
+
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 /**
  * Limelight subsystem for AprilTag detection and tracking
@@ -11,6 +14,8 @@ public class Limelight {
 
     private Limelight3A limelight;
     private LLResult latestResult;
+
+    static double APRILTAG_GOAL_OFFSET_MM = 508;
 
     // Shooter TPS mapping based on ty (distance)
     // ty decreases as distance increases (high ty = close, low ty = far)
@@ -33,7 +38,7 @@ public class Limelight {
     public static final double SHOOTER_DEFAULT_TPS = 1750.0;
 
     // Alignment thresholds
-    public static final double ALIGNMENT_TOLERANCE_CLOSE = 2;
+    public static final double ALIGNMENT_TOLERANCE_CLOSE = 4;
     public static final double ALIGNMENT_TOLERANCE_FAR = 5.0;
     public static final double AREA_CLOSE_THRESHOLD = 0.5;
 
@@ -116,6 +121,39 @@ public class Limelight {
             }
         }
         return -1;
+    }
+
+    /**
+     * Calculate target TX angle to aim at the goal position behind the AprilTag
+\     * @return Target tx offset in degrees
+     */
+    public double calculateTargetOffset() {
+
+        if (latestResult == null || !latestResult.isValid()) {
+            return 0.0;
+        }
+
+        if (latestResult.getFiducialResults() == null || latestResult.getFiducialResults().isEmpty()) {
+            return 0.0;
+        }
+
+        LLResultTypes.FiducialResult fiducial = latestResult.getFiducialResults().get(0);
+        Pose3D tagPose = fiducial.getTargetPoseCameraSpace();
+
+        if (tagPose == null) {
+            return 0.0;
+        }
+
+        double tagX = tagPose.getPosition().x;
+        double tagZ = tagPose.getPosition().z;
+        double tagYaw = tagPose.getOrientation().getYaw(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
+
+        double goalDistanceBehind = APRILTAG_GOAL_OFFSET_MM;
+        double goalX = tagX + goalDistanceBehind * Math.sin(tagYaw);
+        double goalZ = tagZ + goalDistanceBehind * Math.cos(tagYaw);
+
+        double targetTx = Math.toDegrees(Math.atan2(goalX, goalZ));
+        return targetTx;
     }
 
     /**
