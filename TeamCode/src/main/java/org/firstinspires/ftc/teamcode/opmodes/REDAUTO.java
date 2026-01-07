@@ -54,7 +54,7 @@ public class REDAUTO extends LinearOpMode {
     private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
 
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 110, 135, AngleUnit.RADIANS, Math.toRadians(-90));
+    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 112, 135, AngleUnit.RADIANS, Math.toRadians(-90));
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -126,7 +126,7 @@ public class REDAUTO extends LinearOpMode {
             StartToShot = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(110.000, 135.000), new Pose(95.000, 88.000))
+                            new BezierLine(new Pose(112.000, 135.000), new Pose(95.000, 88.000))
                     )
 //                    .setConstantHeadingInterpolation(Math.toRadians(-100))
 //
@@ -142,7 +142,7 @@ public class REDAUTO extends LinearOpMode {
                     .addPath(
                             new BezierCurve(
                                     new Pose(95.000, 88.000),
-                                    new Pose(95.000, 68.000),
+                                    new Pose(95.000, 63.000),
                                     new Pose(119.000, 60.000)
                             )
                     )
@@ -161,12 +161,12 @@ public class REDAUTO extends LinearOpMode {
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 72.000), new Pose(106.000, 64))
+                            new BezierLine(new Pose(87.000, 72.000), new Pose(106.250, 63.5)) //64
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-13), Math.toRadians(20))
 
                     .addPath(
-                            new BezierLine(new Pose(106.000, 64), new Pose(133.5, 64))
+                            new BezierLine(new Pose(106.250, 63.5), new Pose(133.75,63.5))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(20))
                     .build();
@@ -176,7 +176,7 @@ public class REDAUTO extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(133.5, 64), new Pose(87.000, 72.000))
+                            new BezierLine(new Pose(133.5, 64), new Pose(87.000, 73.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(20), Math.toRadians(-12))
 //
@@ -191,7 +191,7 @@ public class REDAUTO extends LinearOpMode {
             Shoot3ToTape1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 72.000), new Pose(125.000, 84))
+                            new BezierLine(new Pose(87.000, 73.000), new Pose(126.000, 84))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -200,7 +200,7 @@ public class REDAUTO extends LinearOpMode {
             tape1ToShoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(125.000, 85), new Pose(98, 85.000))
+                            new BezierLine(new Pose(126.000, 85), new Pose(98, 85.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -289,7 +289,7 @@ public class REDAUTO extends LinearOpMode {
             // === FIRST SHOT ===
             case 0:
                 // StartToShot: Go to first shooting position
-                shooter.setTurretAngle(-14);
+                shooter.setTurretAngle(-18);
                 shooter.setIndexerMiddle();
                 shooterRunning = true;
                 drive.followPathChain(paths.StartToShot, true);
@@ -318,7 +318,7 @@ public class REDAUTO extends LinearOpMode {
             // === SECOND SHOT ===
             case 4:
                 // Tape2ToShoot2: Return to shooting position 2
-                shooter.setTurretAngle(-73);
+                shooter.setTurretAngle(-79);
                 shooterRunning = true;
                 drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
@@ -348,7 +348,7 @@ public class REDAUTO extends LinearOpMode {
             // === THIRD SHOT ===
             case 8:
                 // LeverToShoot3: Set turret to -75, stop intake, turn on shooter
-                shooter.setTurretAngle(-74);
+                shooter.setTurretAngle(-82);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -378,7 +378,7 @@ public class REDAUTO extends LinearOpMode {
             // === FOURTH SHOT ===
             case 12:
                 // LeverToShoot3: Set turret to -75, stop intake, turn on shooter
-                shooter.setTurretAngle(-74);
+                shooter.setTurretAngle(-82);
 
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
@@ -409,7 +409,7 @@ public class REDAUTO extends LinearOpMode {
             // === FIFTH SHOT (from lever) ===
             case 16:
                 // LeverToShoot: Set turret, stop intake, turn on shooter
-                shooter.setTurretAngle(-74);
+                shooter.setTurretAngle(-82);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -439,7 +439,7 @@ public class REDAUTO extends LinearOpMode {
             // === SIXTH SHOT (from tape 1) ===
             case 20:
                 // tape1ToShoot4: Go to shooting position
-                shooter.setTurretAngle(-81);
+                shooter.setTurretAngle(-85);
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.tape1ToShoot4, true);
@@ -469,7 +469,7 @@ public class REDAUTO extends LinearOpMode {
 
             // === FINAL SHOT ===
             case 24:
-                shooter.setTurretAngle(-60);
+                shooter.setTurretAngle(-65);
 
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();

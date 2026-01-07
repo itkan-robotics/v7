@@ -37,7 +37,7 @@ public class BLUEAUTO extends LinearOpMode {
 
     // Timer for shooting phases
     private ElapsedTime shootTimer = new ElapsedTime();
-    private static final double SHOOT_TIME = 1; // seconds for flushing balls
+    private static final double SHOOT_TIME = 0.5; // seconds for flushing balls
 
     // Timer to prevent race condition when starting new paths
     private ElapsedTime pathTimer = new ElapsedTime();
@@ -54,7 +54,7 @@ public class BLUEAUTO extends LinearOpMode {
     private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
 
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 15.27554980595085, 113.26261319534282, AngleUnit.RADIANS, Math.toRadians(90));
+    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 32, 135, AngleUnit.RADIANS, Math.toRadians(270));
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -101,33 +101,9 @@ public class BLUEAUTO extends LinearOpMode {
 //            targetShooterVelocity = updateTargetShooterVelocity();
             shooter.updateShooter(shooterRunning, targetShooterVelocity);
 
-            //Pose2D currentPose = drive.getCurrentPose();
-//            panelsTelemetry.debug("X", currentPose.getX(DistanceUnit.INCH));
-//            panelsTelemetry.debug("Y", currentPose.getY(DistanceUnit.INCH));
-//            panelsTelemetry.debug("Heading", currentPose.getHeading(AngleUnit.RADIANS));
-            // Auto-align turret while moving to shooting positions
-            if (pathState == 0 || pathState == 1 ||
-                    pathState == 4 || pathState == 5 ||
-                    pathState == 8 || pathState == 9 ||
-                    pathState == 12 || pathState == 13 ||
-                    pathState == 16 || pathState == 17 ||
-                    pathState == 20 || pathState == 21) {
-//                shooter.redlimelightTurretAutoAlign();
-            }
-
-            // Log values to Panels and Driver Station
-            panelsTelemetry.debug("Path State", pathState);
-//            Pose2D currentPose = drive.getCurrentPose();
-//            panelsTelemetry.debug("X", currentPose.getX(DistanceUnit.INCH));
-//            panelsTelemetry.debug("Y", currentPose.getY(DistanceUnit.INCH));
-//            panelsTelemetry.debug("Heading", currentPose.getHeading(AngleUnit.RADIANS));
             panelsTelemetry.debug("SHOOTER VEL >>>>   ", shooter.getShooterVelocity());
             panelsTelemetry.debug("SHOOTER TARGET >>>> ", targetShooterVelocity);
 
-
-
-//            panelsTelemetry.debug("intake full", shooter.issintakeFull());
-//            panelsTelemetry.debug("Power Consumption", shooter.getPowerConsumption());
             panelsTelemetry.update(telemetry);
         }
     }
@@ -150,69 +126,63 @@ public class BLUEAUTO extends LinearOpMode {
             StartToShot = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(15.276, 113.263), new Pose(52.000, 88.000))
+                            new BezierLine(new Pose(32.000, 135.000), new Pose(49.000, 88.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
+//                    .setConstantHeadingInterpolation(Math.toRadians(280))
+//
+//                    .addPath(
+//                            new BezierLine(new Pose(38.000, 122.000), new Pose(49.000, 88.000))
+//                    )
+                    .setTangentHeadingInterpolation()
                     .build();
+
 
             Shoot1ToTape2 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(52.000, 88.000),
-                                    new Pose(52.000, 59.000),
-                                    new Pose(21.000, 60.000)
+                                    new Pose(49.000, 88.000),
+                                    new Pose(49.000, 63.000),
+                                    new Pose(25.000, 60.000)
                             )
                     )
-                    .setTangentHeadingInterpolation()
+                    .setConstantHeadingInterpolation(Math.toRadians(193))
                     .build();
 
             Tape2ToSHoot2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
-                                    new Pose(21.000, 60.000),
-                                    new Pose(52.000, 58.000),
-                                    new Pose(57.000, 64.000),
-                                    new Pose(60.543, 72.093)
-                            )
+                            new BezierLine(new Pose(25.000, 60), new Pose(57.000, 72.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(191))
+                    .setTangentHeadingInterpolation()
+                    .setReversed()
                     .build();
-
             // Intake run path - starts where Path3 ends
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(60.543, 72.000), new Pose(52.160, 70.000))
+                            new BezierLine(new Pose(57.000, 72.000), new Pose(37.750, 63.75)) //64
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(225), Math.toRadians(191))
+                    .setLinearHeadingInterpolation(Math.toRadians(193), Math.toRadians(160))
 
                     .addPath(
-                            new BezierLine(new Pose(52.160, 70.000), new Pose(44, 66.00))
+                            new BezierLine(new Pose(37.750, 63.75), new Pose(10.25,63.75))
                     )
-                    .setTangentHeadingInterpolation()
-
-                    .addPath(
-                            new BezierCurve(
-                                    new Pose(44.000, 66.00),
-                                    new Pose(27.000, 56.000),
-                                    new Pose(9.25, 62)
-                            )
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(191), Math.toRadians(150))
+                    .setConstantHeadingInterpolation(Math.toRadians(160))
                     .build();
 
             // Return from lever to shooting position
             LeverToShoot3 = follower
+
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(11, 62.5), new Pose(32.414, 65.014))
+                            new BezierLine(new Pose(10.5, 64), new Pose(57.000, 73.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(150), Math.toRadians(191))
-                    .addPath(
-                            new BezierLine(new Pose(18.629, 63.524), new Pose(60.543, 72.093))
-                    )
+//                    .setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(192))
+//
+//                    .addPath(
+//                            new BezierLine(new Pose(24.000, 65.000), new Pose(57.000, 72.000))
+//                    )
                     .setTangentHeadingInterpolation()
                     .setReversed()
                     .build();
@@ -221,48 +191,41 @@ public class BLUEAUTO extends LinearOpMode {
             Shoot3ToTape1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
-                                    new Pose(60.543, 72.093),
-                                    new Pose(61.000, 91.000),
-                                    new Pose(22.354, 85.692)
-                            )
+                            new BezierLine(new Pose(57.000, 73.000), new Pose(18.000, 84))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(191), Math.toRadians(180))
+                    .setTangentHeadingInterpolation()
                     .build();
 
             // To shooting position from Path6
             tape1ToShoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
-                                    new Pose(22.354, 85.692),
-                                    new Pose(50.000, 86.000),
-                                    new Pose(50.000, 86.000)
-                            )
+                            new BezierLine(new Pose(18.000, 85), new Pose(46, 85.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(191))
+                    .setTangentHeadingInterpolation()
+                    .setReversed()
                     .build();
 
             // Intake to far corner - starts where Path7 ends
             Shoot4toCorner = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(50.000, 86.000), new Pose(53.464, 63.151))
+                            new BezierLine(new Pose(46, 85.000), new Pose(46, 65))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(191), Math.toRadians(225))
-
+                    .setTangentHeadingInterpolation()
                     .addPath(
-                            new BezierLine(new Pose(53.464, 63.151), new Pose(10, 21))
+                            new BezierCurve(new Pose(46, 65),
+                                    new Pose(46, 45),
+                                    new Pose(19, 39.5))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
-
 
             // Return from far corner to shooting - starts where Path10 ends
             CornertoShoot5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10, 21), new Pose(61, 74.000))
+                            new BezierLine(new Pose(19, 39.5), new Pose(57.000, 75.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -271,9 +234,9 @@ public class BLUEAUTO extends LinearOpMode {
             End = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(61.000, 74.000), new Pose(26, 70.603))
+                            new BezierLine(new Pose(57.000, 75.000), new Pose(28, 70.603))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(225), Math.toRadians(90))
+                    .setLinearHeadingInterpolation(Math.toRadians(225), Math.toRadians(270))
                     .build();
         }
     }
@@ -296,7 +259,7 @@ public class BLUEAUTO extends LinearOpMode {
         }
 
         int tagId = limelight.getAprilTagId();
-        if (tagId != 20) {  // Blue alliance uses tag 20
+        if (tagId != 20) {
             return false;
         }
 
@@ -326,7 +289,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === FIRST SHOT ===
             case 0:
                 // StartToShot: Go to first shooting position
-                shooter.setTurretAngle(34);
+                shooter.setTurretAngle(10);
                 shooter.setIndexerMiddle();
                 shooterRunning = true;
                 drive.followPathChain(paths.StartToShot, true);
@@ -355,13 +318,14 @@ public class BLUEAUTO extends LinearOpMode {
             // === SECOND SHOT ===
             case 4:
                 // Tape2ToShoot2: Return to shooting position 2
-                shooter.setTurretAngle(83);
+                shooter.setTurretAngle(71);
                 shooterRunning = true;
                 drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
                 break;
             case 5:
                 shooter.setIndexerMiddle();
+
                 // Shoot at position 2
                 shooting = true;
                 shootTimer.reset();
@@ -383,9 +347,8 @@ public class BLUEAUTO extends LinearOpMode {
 
             // === THIRD SHOT ===
             case 8:
-                // LeverToShoot3: Set turret to 83, stop intake, turn on shooter
-                shooter.setTurretAngle(83);
-                shooter.stopIntakeSystem();
+                // LeverToShoot3: Set turret to 82, stop intake, turn on shooter
+                shooter.setTurretAngle(74);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -414,9 +377,9 @@ public class BLUEAUTO extends LinearOpMode {
 
             // === FOURTH SHOT ===
             case 12:
-                // LeverToShoot3: Set turret to 83, stop intake, turn on shooter
-                shooter.setTurretAngle(83);
-                shooter.stopIntakeSystem();
+                // LeverToShoot3: Set turret to 82, stop intake, turn on shooter
+                shooter.setTurretAngle(74);
+
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -429,8 +392,38 @@ public class BLUEAUTO extends LinearOpMode {
                 shootTimer.reset();
                 break;
 
-            // === TO TAPE 1 ===
+            // === TO LEVER (third cycle) ===
             case 14:
+                // Shoot2ToLever: Close blocker, turn off shooter, run intake
+                shooter.blockShooter();
+                shooterRunning = false;
+                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                drive.followPathChain(paths.Shoot2ToLever, true);
+                pathTimer.reset();
+                break;
+            case 15:
+                // Wait at lever
+                IntakeTimer.reset();
+                break;
+
+            // === FIFTH SHOT (from lever) ===
+            case 16:
+                // LeverToShoot: Set turret, stop intake, turn on shooter
+                shooter.setTurretAngle(74);
+                shooterRunning = true;
+                drive.followPathChain(paths.LeverToShoot3, true);
+                pathTimer.reset();
+                break;
+            case 17:
+                shooter.setIndexerMiddle();
+
+                // Shoot at position 5 (from lever)
+                shooting = true;
+                shootTimer.reset();
+                break;
+
+            // === TO TAPE 1 ===
+            case 18:
                 // Shoot3ToTape1: Go to tape 1 with intake
                 shooter.blockShooter();
                 shooterRunning = false;
@@ -438,30 +431,30 @@ public class BLUEAUTO extends LinearOpMode {
                 drive.followPathChain(paths.Shoot3ToTape1, true);
                 pathTimer.reset();
                 break;
-            case 15:
+            case 19:
                 // Wait for intake at tape 1
                 IntakeTimer.reset();
                 break;
 
-            // === FIFTH SHOT ===
-            case 16:
-                // tape1ToShoot4: Go to shooting position 4
-                shooter.setTurretAngle(81);
+            // === SIXTH SHOT (from tape 1) ===
+            case 20:
+                // tape1ToShoot4: Go to shooting position
+                shooter.setTurretAngle(74);
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.tape1ToShoot4, true);
                 pathTimer.reset();
                 break;
-            case 17:
+            case 21:
                 shooter.setIndexerMiddle();
 
-                // Shoot at position 5
+                // Shoot at position 6
                 shooting = true;
                 shootTimer.reset();
                 break;
 
             // === TO CORNER ===
-            case 18:
+            case 22:
                 // Shoot4toCorner: Go to corner with intake
                 shooter.blockShooter();
                 shooterRunning = false;
@@ -469,14 +462,14 @@ public class BLUEAUTO extends LinearOpMode {
                 drive.followPathChain(paths.Shoot4toCorner, true);
                 pathTimer.reset();
                 break;
-            case 19:
+            case 23:
                 // Wait for intake at corner
                 IntakeTimer.reset();
                 break;
 
             // === FINAL SHOT ===
-            case 20:
-                shooter.setTurretAngle(60);
+            case 24:
+                shooter.setTurretAngle(57);
 
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
@@ -484,14 +477,14 @@ public class BLUEAUTO extends LinearOpMode {
                 drive.followPathChain(paths.CornertoShoot5, true);
                 pathTimer.reset();
                 break;
-            case 21:
+            case 25:
                 shooter.setIndexerMiddle();
                 // Final shoot
                 shooting = true;
                 shootTimer.reset();
                 break;
 
-            case 22:
+            case 26:
                 drive.followPathChain(paths.End, true);
                 break;
         }
@@ -582,7 +575,7 @@ public class BLUEAUTO extends LinearOpMode {
                 break;
             case 7:
                 // Wait at lever
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
                     setPathState(8);
                 }
                 break;
@@ -590,6 +583,9 @@ public class BLUEAUTO extends LinearOpMode {
             // === THIRD SHOT ===
             case 8:
                 // Following LeverToShoot3
+                if(pathTimer.seconds() > 0.5) {
+                    shooter.stopIntakeSystem();
+                }
                 if (!drive.isBusy()) {
                     setPathState(9);
                 }
@@ -624,13 +620,17 @@ public class BLUEAUTO extends LinearOpMode {
                 break;
             case 11:
                 // Wait at lever
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.75)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
                     setPathState(12);
                 }
                 break;
 
             // === FOURTH SHOT ===
             case 12:
+
+                if(pathTimer.seconds() > 0.5) {
+                    shooter.stopIntakeSystem();
+                }
                 // Following LeverToShoot3
                 if (!drive.isBusy()) {
                     setPathState(13);
@@ -657,29 +657,33 @@ public class BLUEAUTO extends LinearOpMode {
                 }
                 break;
 
-            // === TO TAPE 1 ===
+            // === TO LEVER (third cycle) ===
             case 14:
-                // Following Shoot3ToTape1
+                // Following Shoot2ToLever
                 if (!drive.isBusy()) {
                     setPathState(15);
                 }
                 break;
             case 15:
-                // Wait for intake at tape 1
-                if (!drive.isBusy()) {
+                // Wait at lever
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
                     setPathState(16);
                 }
                 break;
 
-            // === FIFTH SHOT ===
+            // === FIFTH SHOT (from lever) ===
             case 16:
-                // Following tape1ToShoot4
+
+                if(pathTimer.seconds() > 0.5) {
+                    shooter.stopIntakeSystem();
+                }
+                // Following LeverToShoot3
                 if (!drive.isBusy()) {
                     setPathState(17);
                 }
                 break;
             case 17:
-                // Shoot at position 5
+                // Shoot at position 5 (from lever)
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
@@ -699,28 +703,70 @@ public class BLUEAUTO extends LinearOpMode {
                 }
                 break;
 
-            // === TO CORNER ===
+            // === TO TAPE 1 ===
             case 18:
-                // Following Shoot4toCorner
+                // Following Shoot3ToTape1
                 if (!drive.isBusy()) {
                     setPathState(19);
                 }
                 break;
             case 19:
-                // Wait for intake at corner
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 0.5)) {
+                // Wait for intake at tape 1
+                if (!drive.isBusy()) {
                     setPathState(20);
                 }
                 break;
 
-            // === FINAL SHOT ===
+            // === SIXTH SHOT (from tape 1) ===
             case 20:
-                // Following CornertoShoot5
+                // Following tape1ToShoot4
                 if (!drive.isBusy()) {
                     setPathState(21);
                 }
                 break;
             case 21:
+                // Shoot at position 6
+                if (!drive.isBusy()) {
+                    limelight.update();
+                    limelightTurretAutoAlign();
+                    targetShooterVelocity = updateTargetShooterVelocity();
+                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
+                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                        shooter.unblockShooter();
+                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                        shootTimer.reset();
+                        shooting = false;
+                    }
+                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
+                        shooter.blockShooter();
+                        shooter.stopIntakeSystem();
+                        setPathState(22);
+                    }
+                }
+                break;
+
+            // === TO CORNER ===
+            case 22:
+                // Following Shoot4toCorner
+                if (!drive.isBusy()) {
+                    setPathState(23);
+                }
+                break;
+            case 23:
+                // Wait for intake at corner
+                if (!drive.isBusy()) {
+                    setPathState(24);
+                }
+                break;
+
+            // === FINAL SHOT ===
+            case 24:
+                // Following CornertoShoot5
+                if (!drive.isBusy()) {
+                    setPathState(25);
+                }
+                break;
+            case 25:
                 // Final shooting sequence
                 if (!drive.isBusy()) {
                     limelight.update();
@@ -737,8 +783,8 @@ public class BLUEAUTO extends LinearOpMode {
                         shooter.blockShooter();
                         shooter.stopIntakeSystem();
                         shooterRunning = false;
-                        setPathState(22);
-                        // Autonomous complete - stay in state 21
+                        setPathState(26);
+                        // Autonomous complete - stay in state 25
                     }
                 }
                 break;
