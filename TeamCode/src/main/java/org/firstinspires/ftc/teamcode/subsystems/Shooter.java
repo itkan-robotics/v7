@@ -91,7 +91,7 @@ public class Shooter {
 
         // Initialize shooter motor (single motor, from HardwareConfigAuto)
         shooterMotor = hardwareMap.get(DcMotorEx.class, "shooter_motor");
-        shooterMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        shooterMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         shooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shooterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
