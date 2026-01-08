@@ -166,7 +166,7 @@ public class REDAUTO extends LinearOpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(-13), Math.toRadians(20))
 
                     .addPath(
-                            new BezierLine(new Pose(106.250, 63.5), new Pose(133.75,63.5))
+                            new BezierLine(new Pose(106.250, 63.5), new Pose(134,63.5))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(20))
                     .build();
@@ -191,7 +191,7 @@ public class REDAUTO extends LinearOpMode {
             Shoot3ToTape1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 73.000), new Pose(126.000, 84))
+                            new BezierLine(new Pose(87.000, 73.000), new Pose(127.000, 84))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -200,7 +200,7 @@ public class REDAUTO extends LinearOpMode {
             tape1ToShoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(126.000, 85), new Pose(98, 85.000))
+                            new BezierLine(new Pose(127.000, 84), new Pose(98, 85.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -440,7 +440,7 @@ public class REDAUTO extends LinearOpMode {
             case 20:
                 // tape1ToShoot4: Go to shooting position
                 shooter.setTurretAngle(-85);
-                shooter.stopIntakeSystem();
+              //  shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.tape1ToShoot4, true);
                 pathTimer.reset();

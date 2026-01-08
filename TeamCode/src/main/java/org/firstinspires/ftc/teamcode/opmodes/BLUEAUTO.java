@@ -54,7 +54,7 @@ public class BLUEAUTO extends LinearOpMode {
     private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
 
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 32, 135, AngleUnit.RADIANS, Math.toRadians(270));
+    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 33, 135, AngleUnit.RADIANS, Math.toRadians(270));
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -126,7 +126,7 @@ public class BLUEAUTO extends LinearOpMode {
             StartToShot = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(32.000, 135.000), new Pose(49.000, 88.000))
+                            new BezierLine(new Pose(33.000, 135.000), new Pose(49.000, 88.000))
                     )
 //                    .setConstantHeadingInterpolation(Math.toRadians(280))
 //
@@ -289,7 +289,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === FIRST SHOT ===
             case 0:
                 // StartToShot: Go to first shooting position
-                shooter.setTurretAngle(10);
+                shooter.setTurretAngle(7);
                 shooter.setIndexerMiddle();
                 shooterRunning = true;
                 drive.followPathChain(paths.StartToShot, true);
@@ -318,14 +318,13 @@ public class BLUEAUTO extends LinearOpMode {
             // === SECOND SHOT ===
             case 4:
                 // Tape2ToShoot2: Return to shooting position 2
-                shooter.setTurretAngle(71);
+                shooter.setTurretAngle(63);
                 shooterRunning = true;
                 drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
                 break;
             case 5:
                 shooter.setIndexerMiddle();
-
                 // Shoot at position 2
                 shooting = true;
                 shootTimer.reset();
@@ -348,7 +347,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === THIRD SHOT ===
             case 8:
                 // LeverToShoot3: Set turret to 82, stop intake, turn on shooter
-                shooter.setTurretAngle(74);
+                shooter.setTurretAngle(70);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -378,7 +377,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === FOURTH SHOT ===
             case 12:
                 // LeverToShoot3: Set turret to 82, stop intake, turn on shooter
-                shooter.setTurretAngle(74);
+                shooter.setTurretAngle(70);
 
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
@@ -409,7 +408,7 @@ public class BLUEAUTO extends LinearOpMode {
             // === FIFTH SHOT (from lever) ===
             case 16:
                 // LeverToShoot: Set turret, stop intake, turn on shooter
-                shooter.setTurretAngle(74);
+                shooter.setTurretAngle(70);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -440,7 +439,6 @@ public class BLUEAUTO extends LinearOpMode {
             case 20:
                 // tape1ToShoot4: Go to shooting position
                 shooter.setTurretAngle(74);
-                shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.tape1ToShoot4, true);
                 pathTimer.reset();
@@ -469,7 +467,7 @@ public class BLUEAUTO extends LinearOpMode {
 
             // === FINAL SHOT ===
             case 24:
-                shooter.setTurretAngle(57);
+                shooter.setTurretAngle(54);
 
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
