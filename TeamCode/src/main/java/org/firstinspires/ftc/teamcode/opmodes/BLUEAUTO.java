@@ -529,6 +529,7 @@ public class BLUEAUTO extends LinearOpMode {
                 // Following Shoot1ToTape2
                 if (!drive.isBusy()) {
                     setPathState(3);
+                    //sus
                 }
                 break;
             case 3:
