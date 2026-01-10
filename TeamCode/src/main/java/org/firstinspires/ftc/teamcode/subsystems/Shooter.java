@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 public class Shooter {
     DcMotorEx shooterMotor;  // Single shooter motor
-    DcMotor intakeMotor;
+    DcMotorEx intakeMotor;
     DcMotorEx transferMotor;
     Servo blockerServo;
     Servo turretServo;   // Turret servo for aiming
@@ -54,8 +54,8 @@ public class Shooter {
     public static final double TURRET_HOME_POSITION = 0.51;            // Center position (0 degrees turret angle)
     
     // Limelight auto-align settings for turret
-    public static final double LIMELIGHT_KP = 0.04;  // Proportional gain for alignment
-    public static final double LIMELIGHT_TOLERANCE = 3;  // Degrees tolerance for alignment
+    public static final double LIMELIGHT_KP = 0.035;  // Proportional gain for alignment
+    public static final double LIMELIGHT_TOLERANCE = 3.5;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far
     public static final double APRILTAG_AREA_CLOSE_THRESHOLD = 0.5;  // Area threshold for close vs far distance
@@ -97,7 +97,7 @@ public class Shooter {
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         
         // Initialize intake and transfer motors (from HardwareConfigAuto)
-        intakeMotor = hardwareMap.get(DcMotor.class, "intake_motor");
+        intakeMotor = hardwareMap.get(DcMotorEx.class, "intake_motor");
         transferMotor = hardwareMap.get(DcMotorEx.class, "transfer_motor");
         
         intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -410,14 +410,13 @@ public class Shooter {
     }
     public double getPowerConsumption(){
         double batteryVoltage = batteryVoltageSensor.getVoltage();
-//robot.intakeMotor.getCurrent(CurrentUnit.AMPS) +
-        double totalCurrent = transferMotor.getCurrent(CurrentUnit.AMPS);
+        double totalCurrent = intakeMotor.getCurrent(CurrentUnit.AMPS) + transferMotor.getCurrent(CurrentUnit.AMPS);
 
         return totalCurrent * batteryVoltage;
     }
 
     public boolean issintakeFull(){
-        return getPowerConsumption() > 60;
+        return getPowerConsumption() > 70;
     }
 
     /**

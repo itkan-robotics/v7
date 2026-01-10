@@ -161,12 +161,12 @@ public class BLUEAUTO extends LinearOpMode {
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57.000, 72.000), new Pose(37.750, 63.75)) //64
+                            new BezierLine(new Pose(57.000, 72.000), new Pose(37.750, 64)) //64
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(193), Math.toRadians(160))
 
                     .addPath(
-                            new BezierLine(new Pose(37.750, 63.75), new Pose(10.25,63.75))
+                            new BezierLine(new Pose(37.750, 64), new Pose(9, 64))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(160))
                     .build();
@@ -176,7 +176,7 @@ public class BLUEAUTO extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10.5, 64), new Pose(57.000, 73.000))
+                            new BezierLine(new Pose(10.5, 64), new Pose(57.000, 72.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(192))
 //
@@ -216,7 +216,7 @@ public class BLUEAUTO extends LinearOpMode {
                     .addPath(
                             new BezierCurve(new Pose(46, 65),
                                     new Pose(46, 45),
-                                    new Pose(19, 39.5))
+                                    new Pose(19, 39))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -234,9 +234,9 @@ public class BLUEAUTO extends LinearOpMode {
             End = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57.000, 75.000), new Pose(28, 70.603))
+                            new BezierLine(new Pose(57, 75.000), new Pose(50, 68))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(225), Math.toRadians(270))
+                    .setTangentHeadingInterpolation()
                     .build();
         }
     }
@@ -506,18 +506,20 @@ public class BLUEAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(2);
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(2);
+                        }
                     }
                 }
                 break;
@@ -548,18 +550,21 @@ public class BLUEAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(6);
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(6);
+                        }
                     }
                 }
                 break;
@@ -573,7 +578,7 @@ public class BLUEAUTO extends LinearOpMode {
                 break;
             case 7:
                 // Wait at lever
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2.25)) {
                     setPathState(8);
                 }
                 break;
@@ -593,18 +598,21 @@ public class BLUEAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(10);
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(10);
+                        }
                     }
                 }
                 break;
@@ -618,7 +626,7 @@ public class BLUEAUTO extends LinearOpMode {
                 break;
             case 11:
                 // Wait at lever
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2.25)) {
                     setPathState(12);
                 }
                 break;
@@ -639,18 +647,21 @@ public class BLUEAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(14);
+                    //    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(14);
+                        }
                     }
                 }
                 break;
@@ -664,7 +675,7 @@ public class BLUEAUTO extends LinearOpMode {
                 break;
             case 15:
                 // Wait at lever
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2.25)) {
                     setPathState(16);
                 }
                 break;
@@ -685,18 +696,21 @@ public class BLUEAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(18);
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(18);
+                        }
                     }
                 }
                 break;
@@ -727,18 +741,21 @@ public class BLUEAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(22);
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(22);
+                        }
                     }
                 }
                 break;
@@ -769,20 +786,21 @@ public class BLUEAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        shooterRunning = false;
-                        setPathState(26);
-                        // Autonomous complete - stay in state 25
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(26);
+                        }
                     }
                 }
                 break;

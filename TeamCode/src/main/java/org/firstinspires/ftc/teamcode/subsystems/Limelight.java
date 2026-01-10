@@ -203,7 +203,7 @@ public class Limelight {
         if (targetTPS < SHOOTER_MIN_TPS) targetTPS = SHOOTER_MIN_TPS;
         if (targetTPS > SHOOTER_MAX_TPS) targetTPS = SHOOTER_MAX_TPS;
 
-        return targetTPS;
+        return targetTPS - 10;
     }
 
     /**

@@ -99,7 +99,6 @@ public class GatePath18Ball extends LinearOpMode {
             autonomousPathUpdate(); // Update autonomous state machine
 
             // Update shooter target velocity from limelight
-            targetShooterVelocity = updateTargetShooterVelocity();
 
             // Continuously update shooter with bang-bang control
             shooter.updateShooter(shooterRunning, targetShooterVelocity);
@@ -422,6 +421,7 @@ public class GatePath18Ball extends LinearOpMode {
                         shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                         shootTimer.reset();
                         shooting = false;
+                        targetShooterVelocity = updateTargetShooterVelocity();
                     }
                     if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
                         shooter.blockShooter();

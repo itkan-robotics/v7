@@ -101,9 +101,6 @@ public class REDAUTO extends LinearOpMode {
 //            targetShooterVelocity = updateTargetShooterVelocity();
             shooter.updateShooter(shooterRunning, targetShooterVelocity);
 
-            panelsTelemetry.debug("SHOOTER VEL >>>>   ", shooter.getShooterVelocity());
-            panelsTelemetry.debug("SHOOTER TARGET >>>> ", targetShooterVelocity);
-
             panelsTelemetry.update(telemetry);
         }
     }
@@ -234,9 +231,9 @@ public class REDAUTO extends LinearOpMode {
             End = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 75.000), new Pose(116, 70.603))
+                            new BezierLine(new Pose(87.000, 75.000), new Pose(95, 70))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(-90))
+                    .setTangentHeadingInterpolation()
                     .build();
         }
     }
@@ -267,9 +264,9 @@ public class REDAUTO extends LinearOpMode {
         double targetOffset = limelight.calculateTargetOffset();
         double error = tx - targetOffset;
 
-        if (Math.abs(error) > shooter.LIMELIGHT_TOLERANCE) {
+        if (Math.abs(error) > Shooter.LIMELIGHT_TOLERANCE) {
             double currentTurretAngle = shooter.getTurretAngle();
-            double turretAdjustment = -error * shooter.LIMELIGHT_KP;
+            double turretAdjustment = -error * Shooter.LIMELIGHT_KP;
             double newTurretAngle = currentTurretAngle + turretAdjustment;
             shooter.setTurretAngle(newTurretAngle);
             return true;
@@ -348,7 +345,7 @@ public class REDAUTO extends LinearOpMode {
             // === THIRD SHOT ===
             case 8:
                 // LeverToShoot3: Set turret to -75, stop intake, turn on shooter
-                shooter.setTurretAngle(-82);
+                shooter.setTurretAngle(-81);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -378,7 +375,7 @@ public class REDAUTO extends LinearOpMode {
             // === FOURTH SHOT ===
             case 12:
                 // LeverToShoot3: Set turret to -75, stop intake, turn on shooter
-                shooter.setTurretAngle(-82);
+                shooter.setTurretAngle(-81);
 
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
@@ -409,7 +406,7 @@ public class REDAUTO extends LinearOpMode {
             // === FIFTH SHOT (from lever) ===
             case 16:
                 // LeverToShoot: Set turret, stop intake, turn on shooter
-                shooter.setTurretAngle(-82);
+                shooter.setTurretAngle(-81);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -439,7 +436,7 @@ public class REDAUTO extends LinearOpMode {
             // === SIXTH SHOT (from tape 1) ===
             case 20:
                 // tape1ToShoot4: Go to shooting position
-                shooter.setTurretAngle(-85);
+                shooter.setTurretAngle(-84);
               //  shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.tape1ToShoot4, true);
@@ -508,18 +505,20 @@ public class REDAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(2);
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(2);
+                        }
                     }
                 }
                 break;
@@ -550,18 +549,21 @@ public class REDAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(6);
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(6);
+                        }
                     }
                 }
                 break;
@@ -575,7 +577,7 @@ public class REDAUTO extends LinearOpMode {
                 break;
             case 7:
                 // Wait at lever
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2)) {
                     setPathState(8);
                 }
                 break;
@@ -595,18 +597,21 @@ public class REDAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(10);
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(10);
+                        }
                     }
                 }
                 break;
@@ -620,7 +625,7 @@ public class REDAUTO extends LinearOpMode {
                 break;
             case 11:
                 // Wait at lever
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2)) {
                     setPathState(12);
                 }
                 break;
@@ -641,18 +646,21 @@ public class REDAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(14);
+                //    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(14);
+                        }
                     }
                 }
                 break;
@@ -666,7 +674,7 @@ public class REDAUTO extends LinearOpMode {
                 break;
             case 15:
                 // Wait at lever
-                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 1.5)) {
+                if (!drive.isBusy() && (shooter.issintakeFull() || IntakeTimer.seconds() > 2)) {
                     setPathState(16);
                 }
                 break;
@@ -687,18 +695,21 @@ public class REDAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(18);
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(18);
+                        }
                     }
                 }
                 break;
@@ -729,18 +740,21 @@ public class REDAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        setPathState(22);
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(22);
+                        }
                     }
                 }
                 break;
@@ -771,20 +785,21 @@ public class REDAUTO extends LinearOpMode {
                 if (!drive.isBusy()) {
                     limelight.update();
                     limelightTurretAutoAlign();
-                    targetShooterVelocity = updateTargetShooterVelocity();
-                    shooter.updateShooter(shooterRunning, targetShooterVelocity);
-                    if (shooting && shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                        shooter.unblockShooter();
-                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                        shootTimer.reset();
-                        shooting = false;
-                    }
-                    if (!shooting && shootTimer.seconds() >= SHOOT_TIME) {
-                        shooter.blockShooter();
-                        shooter.stopIntakeSystem();
-                        shooterRunning = false;
-                        setPathState(26);
-                        // Autonomous complete - stay in state 25
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                    if(shooting) {
+                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                            shooter.unblockShooter();
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shootTimer.reset();
+                            shooting = false;
+                            targetShooterVelocity = updateTargetShooterVelocity();
+                        }
+                    } else {
+                        if(shootTimer.seconds() >= SHOOT_TIME) {
+                            shooter.blockShooter();
+                            shooter.stopIntakeSystem();
+                            setPathState(26);
+                        }
                     }
                 }
                 break;
