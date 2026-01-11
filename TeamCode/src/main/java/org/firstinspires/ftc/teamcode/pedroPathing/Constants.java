@@ -17,7 +17,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(12.11092)
-            .forwardZeroPowerAcceleration(-35.436696126559625)
+            .forwardZeroPowerAcceleration(-35.4)
             .lateralZeroPowerAcceleration(-95.87296953434631)
             .useSecondaryDrivePIDF(true)
             .useSecondaryHeadingPIDF(true)
@@ -52,7 +52,7 @@ public class Constants {
             .strafePodX(-12.5)
             .distanceUnit(DistanceUnit.MM)
             .hardwareMapName("pinpoint")
-            .customEncoderResolution(34.311)
+            .customEncoderResolution(34.311)// 34.311
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
     public static Follower createFollower(HardwareMap hardwareMap) {

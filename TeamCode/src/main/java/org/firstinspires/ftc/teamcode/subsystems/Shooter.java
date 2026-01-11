@@ -31,7 +31,7 @@ public class Shooter {
     public static final double MIN_SHOOTER_VELOCITY_FOR_FEED = 1250.0;
 
     // Servo position constants
-    public static final double BLOCKER_BLOCK_POSITION = 0.3;
+    public static final double BLOCKER_BLOCK_POSITION = 0.25;
     public static final double BLOCKER_UNBLOCK_POSITION = 0.58;
     
     // Indexer servo positions

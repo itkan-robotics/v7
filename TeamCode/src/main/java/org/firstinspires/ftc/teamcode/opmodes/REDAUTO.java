@@ -52,7 +52,6 @@ public class REDAUTO extends LinearOpMode {
 
     // Target shooter velocity (will be updated from limelight)
     private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
-
     // Starting pose - MUST match the beginning of Path1!
     private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 112, 135, AngleUnit.RADIANS, Math.toRadians(-90));
 
@@ -173,7 +172,7 @@ public class REDAUTO extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(133.5, 64), new Pose(87.000, 73.000))
+                            new BezierLine(new Pose(134, 63.5), new Pose(87.000, 73.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(20), Math.toRadians(-12))
 //
