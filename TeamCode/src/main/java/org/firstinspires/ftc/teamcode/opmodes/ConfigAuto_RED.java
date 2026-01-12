@@ -155,6 +155,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
             // Update shooter target velocity from limelight
 //            targetShooterVelocity = updateTargetShooterVelocity();
+            telemetry.addData("limelight tx:  ", limelight.getTx());
             shooter.updateShooter(shooterRunning, targetShooterVelocity);
 
             panelsTelemetry.update(telemetry);
@@ -218,14 +219,14 @@ public class ConfigAuto_RED extends LinearOpMode {
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 72.000), new Pose(106.250, 63.5)) //64
+                            new BezierLine(new Pose(87.000, 72.000), new Pose(106.250, 63.75)) //64
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-13), Math.toRadians(20))
+                    .setLinearHeadingInterpolation(Math.toRadians(-13), Math.toRadians(15))
 
                     .addPath(
-                            new BezierLine(new Pose(106.250, 63.5), new Pose(134,63.5))
+                            new BezierLine(new Pose(106.250, 63.75), new Pose(135,63.75))
                     )
-                    .setConstantHeadingInterpolation(Math.toRadians(20))
+                    .setConstantHeadingInterpolation(Math.toRadians(15))
                     .build();
 
             // Return from lever to shooting position
@@ -233,7 +234,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(134, 63.5), new Pose(87.000, 73.000))
+                            new BezierLine(new Pose(135, 63.75), new Pose(87.000, 73.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(20), Math.toRadians(-12))
 //
@@ -394,7 +395,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === SECOND SHOT ===
             case GoToShooting2:
                 // Tape2ToShoot2: Return to shooting position 2
-                shooter.setTurretAngle(-79);
+                shooter.setTurretAngle(-74);
                 shooterRunning = true;
                 drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
@@ -418,7 +419,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === THIRD SHOT ===
             case ShootLever:
                 // LeverToShoot3: Set turret to -75, stop intake, turn on shooter
-                shooter.setTurretAngle(-81);
+                shooter.setTurretAngle(-78);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -437,7 +438,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === SIXTH SHOT (from tape 1) ===
             case Tape1Shoot:
                 // tape1ToShoot4: Go to shooting position
-                shooter.setTurretAngle(-84);
+                shooter.setTurretAngle(-81);
                 //  shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.tape1ToShoot4, true);
@@ -457,7 +458,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
             // === FINAL SHOT ===
             case CornerToShoot:
-                shooter.setTurretAngle(-65);
+                shooter.setTurretAngle(-63);
 
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
@@ -479,7 +480,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                 break;
 
             case SuicideToShoot:
-                shooter.setTurretAngle(-50);
+                shooter.setTurretAngle(-52);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;

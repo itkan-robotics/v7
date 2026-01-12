@@ -26,19 +26,19 @@ public class Limelight {
     public static final double LIMELIGHT_TY_5 = -0.5;
     public static final double LIMELIGHT_TY_6 = -1.8;   // Farthest
 
-    public static final double SHOOTER_TPS_1 = 1300;  // Closest
-    public static final double SHOOTER_TPS_2 = 1400;
-    public static final double SHOOTER_TPS_3 = 1500;
-    public static final double SHOOTER_TPS_4 = 1650.0;
-    public static final double SHOOTER_TPS_5 = 1750.0;
+    public static final double SHOOTER_TPS_1 = 1275;  // Closest
+    public static final double SHOOTER_TPS_2 = 1350;
+    public static final double SHOOTER_TPS_3 = 1450;
+    public static final double SHOOTER_TPS_4 = 1525;
+    public static final double SHOOTER_TPS_5 = 1700;
     public static final double SHOOTER_TPS_6 = 1800.0;  // Farthest
 
     public static final double SHOOTER_MIN_TPS = 1250.0;
     public static final double SHOOTER_MAX_TPS = 1900;
-    public static final double SHOOTER_DEFAULT_TPS = 1750.0;
+    public static final double SHOOTER_DEFAULT_TPS = 1400.0;
 
     // Alignment thresholds
-    public static final double ALIGNMENT_TOLERANCE_CLOSE = 4;
+    public static final double ALIGNMENT_TOLERANCE_CLOSE = 2.5;
     public static final double ALIGNMENT_TOLERANCE_FAR = 5.0;
     public static final double AREA_CLOSE_THRESHOLD = 0.5;
 
@@ -203,7 +203,7 @@ public class Limelight {
         if (targetTPS < SHOOTER_MIN_TPS) targetTPS = SHOOTER_MIN_TPS;
         if (targetTPS > SHOOTER_MAX_TPS) targetTPS = SHOOTER_MAX_TPS;
 
-        return targetTPS - 100;
+        return targetTPS - 75;
     }
 
     /**
