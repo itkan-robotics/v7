@@ -20,25 +20,25 @@ public class Limelight {
     // Shooter TPS mapping based on ty (distance)
     // ty decreases as distance increases (high ty = close, low ty = far)
     public static final double LIMELIGHT_TY_1 = 14.3;   // Closest
-    public static final double LIMELIGHT_TY_2 = 7.1;
-    public static final double LIMELIGHT_TY_3 = 1.7;
-    public static final double LIMELIGHT_TY_4 = 2.2;
-    public static final double LIMELIGHT_TY_5 = -0.5;
-    public static final double LIMELIGHT_TY_6 = -1.8;   // Farthest
+    public static final double LIMELIGHT_TY_2 = 2.4;
+    public static final double LIMELIGHT_TY_3 = -0.4;
+    public static final double LIMELIGHT_TY_4 = -3.2;
+    public static final double LIMELIGHT_TY_5 = -4.2;
+    public static final double LIMELIGHT_TY_6 = -4.8;   // Farthest
 
-    public static final double SHOOTER_TPS_1 = 1275;  // Closest
-    public static final double SHOOTER_TPS_2 = 1350;
-    public static final double SHOOTER_TPS_3 = 1450;
-    public static final double SHOOTER_TPS_4 = 1525;
-    public static final double SHOOTER_TPS_5 = 1700;
+    public static final double SHOOTER_TPS_1 = 1350;  // Closest
+    public static final double SHOOTER_TPS_2 = 1450;
+    public static final double SHOOTER_TPS_3 = 1500;
+    public static final double SHOOTER_TPS_4 = 1750;
+    public static final double SHOOTER_TPS_5 = 1800;
     public static final double SHOOTER_TPS_6 = 1800.0;  // Farthest
 
     public static final double SHOOTER_MIN_TPS = 1250.0;
-    public static final double SHOOTER_MAX_TPS = 1900;
-    public static final double SHOOTER_DEFAULT_TPS = 1400.0;
+    public static final double SHOOTER_MAX_TPS = 2000;
+    public static final double SHOOTER_DEFAULT_TPS = 1350;
 
     // Alignment thresholds
-    public static final double ALIGNMENT_TOLERANCE_CLOSE = 2.5;
+    public static final double ALIGNMENT_TOLERANCE_CLOSE = 3;
     public static final double ALIGNMENT_TOLERANCE_FAR = 5.0;
     public static final double AREA_CLOSE_THRESHOLD = 0.5;
 
@@ -203,9 +203,57 @@ public class Limelight {
         if (targetTPS < SHOOTER_MIN_TPS) targetTPS = SHOOTER_MIN_TPS;
         if (targetTPS > SHOOTER_MAX_TPS) targetTPS = SHOOTER_MAX_TPS;
 
-        return targetTPS - 75;
+        return targetTPS;
     }
-
+//    public double getShooterTarget() {
+//        if (!hasTarget()) {
+//            // Use override default if set, otherwise use constant default
+//            return SHOOTER_DEFAULT_TPS;
+//        }
+//
+//        double ty = getTy();
+//        double targetTPS;
+//
+//        // ty decreases as distance increases (high ty = close, low ty = far)
+//        if (ty >= LIMELIGHT_TY_1) {
+//            // Closer than closest calibration point
+//            targetTPS = SHOOTER_TPS_1;
+//        } else if (ty >= LIMELIGHT_TY_2) {
+//            // Interpolate between TY_1 and TY_2
+//            double tyRange = LIMELIGHT_TY_1 - LIMELIGHT_TY_2;
+//            double tpsRange = SHOOTER_TPS_2 - SHOOTER_TPS_1;
+//            double normalized = (LIMELIGHT_TY_1 - ty) / tyRange;
+//            targetTPS = SHOOTER_TPS_1 + (normalized * tpsRange);
+//        } else if (ty >= LIMELIGHT_TY_3) {
+//            double tyRange = LIMELIGHT_TY_2 - LIMELIGHT_TY_3;
+//            double tpsRange = SHOOTER_TPS_3 - SHOOTER_TPS_2;
+//            double normalized = (LIMELIGHT_TY_2 - ty) / tyRange;
+//            targetTPS = SHOOTER_TPS_2 + (normalized * tpsRange);
+//        } else if (ty >= LIMELIGHT_TY_4) {
+//            double tyRange = LIMELIGHT_TY_3 - LIMELIGHT_TY_4;
+//            double tpsRange = SHOOTER_TPS_4 - SHOOTER_TPS_3;
+//            double normalized = (LIMELIGHT_TY_3 - ty) / tyRange;
+//            targetTPS = SHOOTER_TPS_3 + (normalized * tpsRange);
+//        } else if (ty >= LIMELIGHT_TY_5) {
+//            double tyRange = LIMELIGHT_TY_4 - LIMELIGHT_TY_5;
+//            double tpsRange = SHOOTER_TPS_5 - SHOOTER_TPS_4;
+//            double normalized = (LIMELIGHT_TY_4 - ty) / tyRange;
+//            targetTPS = SHOOTER_TPS_4 + (normalized * tpsRange);
+//        } else if (ty >= LIMELIGHT_TY_6) {
+//            double tyRange = LIMELIGHT_TY_5 - LIMELIGHT_TY_6;
+//            double tpsRange = SHOOTER_TPS_6 - SHOOTER_TPS_5;
+//            double normalized = (LIMELIGHT_TY_5 - ty) / tyRange;
+//            targetTPS = SHOOTER_TPS_5 + (normalized * tpsRange);
+//        } else {
+//            // Farther than farthest calibration point
+//            targetTPS = SHOOTER_TPS_6;
+//        }
+//
+//        if (targetTPS < SHOOTER_MIN_TPS) targetTPS = SHOOTER_MIN_TPS;
+//        if (targetTPS > SHOOTER_MAX_TPS) targetTPS = SHOOTER_MAX_TPS;
+//
+//        return targetTPS;
+//    }
     /**
      * Check if aligned for shooting (tx within tolerance)
      */

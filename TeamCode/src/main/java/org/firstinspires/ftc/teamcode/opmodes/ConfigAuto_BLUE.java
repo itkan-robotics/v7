@@ -37,6 +37,11 @@ public class ConfigAuto_BLUE extends LinearOpMode {
     // Timer for shooting phases
     private ElapsedTime shootTimer = new ElapsedTime();
     private static final double SHOOT_TIME = 0.5; // seconds for flushing balls
+    
+    // Timer for turret alignment timeout
+    private ElapsedTime alignTimer = new ElapsedTime();
+    private static final double ALIGN_TIMEOUT = 0.5; // max seconds to wait for alignment before shooting anyway
+    
     double INTAKE_WAIT_TIME = 2.0; // seconds to wait for intake at lever
 
     // Timer to prevent race condition when starting new paths
@@ -46,6 +51,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
     // Flag for shooter control - must be updated continuously for bang-bang
     private boolean shooterRunning = false;
     private boolean shooting = false; // Track if shooting sequence has started
+    boolean atShot = false;
 
     // AprilTag ID detected during init (21, 22, or 23)
     private int detectedTagId = 21;
@@ -72,7 +78,6 @@ public class ConfigAuto_BLUE extends LinearOpMode {
         ToCorner,
         CornerToShoot,
         End,
-        ShootingGate,
         Suicide,
         SuicideToShoot
     }
@@ -372,12 +377,10 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 // Shoot at position 1
                 shooting = true;
                 shootTimer.reset();
+                alignTimer.reset();
+                atShot = false;
                 break;
-            case ShootingGate:
-                // Shoot at position 1
-                shooting = true;
-                shootTimer.reset();
-                break;
+
             // === TO TAPE 2 ===
             case ToTape2:
                 // Shoot1ToTape2: Go to tape 2 with intake
@@ -399,6 +402,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 shooterRunning = true;
                 drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
+                atShot = false;
                 break;
 
             // === TO LEVER (first cycle) ===
@@ -419,7 +423,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === THIRD SHOT ===
             case ShootLever:
                 // LeverToShoot3
-                shooter.setTurretAngle(66);
+                shooter.setTurretAngle(68);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -554,29 +558,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                     }
                 }
                 break;
-            case ShootingGate:
-                // Shoot at position 3
-                if (!drive.isBusy()) {
-                    limelight.update();
-                    limelightTurretAutoAlign();
-//                    targetShooterVelocity = updateTargetShooterVelocity();
-                    if(shooting) {
-                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
-                            shooter.unblockShooter();
-                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                            shootTimer.reset();
-                            shooting = false;
-                            targetShooterVelocity = updateTargetShooterVelocity();
-                        }
-                    } else {
-                        if(shootTimer.seconds() >= SHOOT_TIME) {
-                            shooter.blockShooter();
-                            shooter.stopIntakeSystem();
-                            gateCycles -=1;
-                        }
-                    }
-                }
-                break;
+
 
             // === TO TAPE 1 ===
             case ToTape1:
@@ -607,12 +589,22 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 break;
             case Shooting:
                 // Shoot at position 6
-                if (!drive.isBusy()) {
+                if(!atShot) {
+                    if(!drive.isBusy()) {
+                        atShot = true;
+                        shooter.stopIntakeSystem();
+                        shooter.unblockShooter();
+                    }
+                } else {
                     limelight.update();
                     limelightTurretAutoAlign();
 //                    targetShooterVelocity = updateTargetShooterVelocity();
                     if(shooting) {
-                        if(shooter.isShooterReady(targetShooterVelocity, limelight.isAlignedForShooting())) {
+                        boolean isAligned = limelight.isAlignedForShooting();
+                        boolean timedOut = alignTimer.seconds() >= ALIGN_TIMEOUT;
+                        boolean shooterSpeedReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= Shooter.VELOCITY_TOLERANCE;
+
+                        if(shooterSpeedReady && (isAligned || timedOut)) {
                             shooter.unblockShooter();
                             shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                             shootTimer.reset();

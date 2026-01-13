@@ -20,7 +20,7 @@ public class Shooter {
 
     // Constants for shooter subsystem
     public static final double SHOOTER_MAX_POWER = 1.0;
-    public static final double SHOOTER_MIN_POWER = 0.0;
+    public static final double SHOOTER_MIN_POWER = 0.3;
     public static final double SHOOTER_HOLD_POWER = 0.5;
     public static final double VELOCITY_TOLERANCE = 50.0; // ticks per second tolerance for bang-bang controller
 
@@ -55,7 +55,7 @@ public class Shooter {
     
     // Limelight auto-align settings for turret
     public static final double LIMELIGHT_KP = 0.045;  // Proportional gain for alignment
-    public static final double LIMELIGHT_TOLERANCE = 2.5;  // Degrees tolerance for alignment
+    public static final double LIMELIGHT_TOLERANCE = 2;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far
     public static final double APRILTAG_AREA_CLOSE_THRESHOLD = 0.5;  // Area threshold for close vs far distance
@@ -363,13 +363,11 @@ public class Shooter {
         double error = targetVelocity - currentVelocity;
         double power;
 
-        if (error > 200) {
+        if (targetVelocity > currentVelocity ) {
             // Far below target, apply max power
             power = SHOOTER_MAX_POWER;
-        } else if (error > 0) {
-            // Approaching target, reduce power to prevent overshoot
-            power = SHOOTER_HOLD_POWER;
-        } else {
+        }
+      else {
             // At or above target velocity, apply min power
             power = SHOOTER_MIN_POWER;
         }
