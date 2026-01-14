@@ -227,12 +227,12 @@ public class ConfigAuto_RED extends LinearOpMode {
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 72.000), new Pose(106.250, 63.75)) //64
+                            new BezierLine(new Pose(87.000, 72.000), new Pose(106.250, 64.5)) //64
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-13), Math.toRadians(15))
 
                     .addPath(
-                            new BezierLine(new Pose(106.250, 63.75), new Pose(135,64.5))
+                            new BezierLine(new Pose(106.250, 64.5), new Pose(135,64.5))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(15))
                     .build();
@@ -595,7 +595,8 @@ public class ConfigAuto_RED extends LinearOpMode {
                 if(!atShot) {
                     if(!drive.isBusy()) {
                         atShot = true;
-
+                        shooter.stopIntakeSystem();
+                        shooter.unblockShooter();
                     }
                 } else {
                     limelight.update();

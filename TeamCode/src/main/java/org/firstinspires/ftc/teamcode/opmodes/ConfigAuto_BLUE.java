@@ -462,7 +462,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
 
             // === FINAL SHOT ===
             case CornerToShoot:
-                shooter.setTurretAngle(47);
+                shooter.setTurretAngle(49);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
