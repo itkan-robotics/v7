@@ -60,7 +60,7 @@ public class ConfigAuto_RED extends LinearOpMode {
     // Target shooter velocity (will be updated from limelight)
     private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 112, 135, AngleUnit.RADIANS, Math.toRadians(-90));
+    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 111, 135, AngleUnit.RADIANS, Math.toRadians(-90));
     boolean suicide = false;
 
     double gateTimer;
@@ -378,10 +378,14 @@ public class ConfigAuto_RED extends LinearOpMode {
                 break;
             case Shooting:
                 // Shoot at position 1
+                shooter.stopIntakeSystem();
+                shooter.unblockShooter();
+                targetShooterVelocity = updateTargetShooterVelocity();
                 shooting = true;
                 shootTimer.reset();
                 alignTimer.reset();
                 atShot = false;
+
                 break;
             // === TO TAPE 2 ===
             case ToTape2:
@@ -597,7 +601,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                         atShot = true;
                         shooter.stopIntakeSystem();
                         shooter.unblockShooter();
-                        targetShooterVelocity = updateTargetShooterVelocity();
+                      //  targetShooterVelocity = updateTargetShooterVelocity();
                     }
                 } else {
 //                    targetShooterVelocity = updateTargetShooterVelocity();
