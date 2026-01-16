@@ -166,7 +166,7 @@ public class BLUEAUTO extends LinearOpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(193), Math.toRadians(160))
 
                     .addPath(
-                            new BezierLine(new Pose(37.750, 64), new Pose(9, 64))
+                            new BezierLine(new Pose(37.750, 64), new Pose(10, 64))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(160))
                     .build();
@@ -176,7 +176,7 @@ public class BLUEAUTO extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10.5, 64), new Pose(57.000, 72.000))
+                            new BezierLine(new Pose(10, 64), new Pose(57.000, 72.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(192))
 //

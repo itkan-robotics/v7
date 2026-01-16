@@ -55,7 +55,7 @@ public class Shooter {
     
     // Limelight auto-align settings for turret
     public static final double LIMELIGHT_KP = 0.035;  // Proportional gain for alignment
-    public static final double LIMELIGHT_TOLERANCE = 3.5;  // Degrees tolerance for alignment
+    public static final double LIMELIGHT_TOLERANCE = 1.5;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far
     public static final double APRILTAG_AREA_CLOSE_THRESHOLD = 0.5;  // Area threshold for close vs far distance
@@ -410,7 +410,8 @@ public class Shooter {
     }
     public double getPowerConsumption(){
         double batteryVoltage = batteryVoltageSensor.getVoltage();
-        double totalCurrent = intakeMotor.getCurrent(CurrentUnit.AMPS) + transferMotor.getCurrent(CurrentUnit.AMPS);
+        double totalCurrent = transferMotor.getCurrent(CurrentUnit.AMPS);
+        //intakeMotor.getCurrent(CurrentUnit.AMPS) +
 
         return totalCurrent * batteryVoltage;
     }
