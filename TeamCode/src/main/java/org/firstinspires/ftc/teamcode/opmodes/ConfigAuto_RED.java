@@ -36,7 +36,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
     // Timer for shooting phases
     private ElapsedTime shootTimer = new ElapsedTime();
-    private static final double SHOOT_TIME = 0.6; // seconds for flushing balls
+    private static final double SHOOT_TIME = 0.5; // seconds for flushing balls
     
     // Timer for turret alignment timeout
     private ElapsedTime alignTimer = new ElapsedTime();
@@ -282,7 +282,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                     .addPath(
                             new BezierCurve(new Pose(98, 65),
                                     new Pose(98, 45),
-                                    new Pose(125, 40.5))
+                                    new Pose(128, 40.5))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -291,7 +291,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             CornertoShoot5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(125, 40.5), new Pose(87.000, 75.000))
+                            new BezierLine(new Pose(128, 40.5), new Pose(87.000, 75.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -597,22 +597,22 @@ public class ConfigAuto_RED extends LinearOpMode {
                         atShot = true;
                         shooter.stopIntakeSystem();
                         shooter.unblockShooter();
+                        targetShooterVelocity = updateTargetShooterVelocity();
                     }
                 } else {
-                    limelight.update();
-                    limelightTurretAutoAlign();
 //                    targetShooterVelocity = updateTargetShooterVelocity();
                     if(shooting) {
+                        limelight.update();
+                        limelightTurretAutoAlign();
                         boolean isAligned = limelight.isAlignedForShooting();
                         boolean timedOut = alignTimer.seconds() >= ALIGN_TIMEOUT;
                         boolean shooterSpeedReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= Shooter.VELOCITY_TOLERANCE;
 
                         if(shooterSpeedReady && (isAligned || timedOut)) {
                             shooter.unblockShooter();
-                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                            shooter.runIntakeSystem(Shooter.INTAKE_POWER - 0.1);
                             shootTimer.reset();
                             shooting = false;
-                            targetShooterVelocity = updateTargetShooterVelocity();
                         }
                     } else {
                         if(shootTimer.seconds() >= SHOOT_TIME) {

@@ -214,7 +214,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             Tape2ToSHoot2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(25.000, 60), new Pose(57.000, 72.000))
+                            new BezierLine(new Pose(25.000, 60), new Pose(59.25, 72.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -223,12 +223,12 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57.000, 72.000), new Pose(37.750, 63)) //64
+                            new BezierLine(new Pose(59.25, 72.000), new Pose(37.750, 63)) //64
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(193), Math.toRadians(160))
 
                     .addPath(
-                            new BezierLine(new Pose(37.750, 63), new Pose(9.25, 61.25))
+                            new BezierLine(new Pose(37.750, 63), new Pose(9.25, 62))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(160))
                     .build();
@@ -238,7 +238,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(9.5, 61.75), new Pose(57.000, 72.000))
+                            new BezierLine(new Pose(9.5, 62), new Pose(59.25, 72.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(192))
 //
@@ -253,7 +253,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             Shoot3ToTape1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57.000, 72.000), new Pose(18.000, 84))
+                            new BezierLine(new Pose(59.25, 72.000), new Pose(15.000, 84))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -262,7 +262,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             tape1ToShoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(18.000, 84), new Pose(46, 85.000))
+                            new BezierLine(new Pose(15.000, 84), new Pose(46, 85.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -278,7 +278,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                     .addPath(
                             new BezierCurve(new Pose(46, 65),
                                     new Pose(46, 45),
-                                    new Pose(19, 39))
+                                    new Pose(15, 39))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -287,7 +287,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             CornertoShoot5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(19, 39), new Pose(57.000, 75.000))
+                            new BezierLine(new Pose(15, 39), new Pose(57.000, 75.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -375,6 +375,9 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 break;
             case Shooting:
                 // Shoot at position 1
+                shooter.stopIntakeSystem();
+                shooter.unblockShooter();
+                targetShooterVelocity = updateTargetShooterVelocity();
                 shooting = true;
                 shootTimer.reset();
                 alignTimer.reset();
@@ -398,11 +401,10 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === SECOND SHOT ===
             case GoToShooting2:
                 // Tape2ToShoot2: Return to shooting position 2
-                shooter.setTurretAngle(61);
+                shooter.setTurretAngle(64);
                 shooterRunning = true;
                 drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
-                atShot = false;
                 break;
 
             // === TO LEVER (first cycle) ===
@@ -462,7 +464,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
 
             // === FINAL SHOT ===
             case CornerToShoot:
-                shooter.setTurretAngle(49);
+                shooter.setTurretAngle(52);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
@@ -545,7 +547,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === THIRD SHOT ===
             case ShootLever:
                 // Following LeverToShoot3
-                if(pathTimer.seconds() > 0.5) {
+                if(pathTimer.seconds() > 0.75) {
                     shooter.stopIntakeSystem();
                 }
                 if (!drive.isBusy()) {
@@ -589,34 +591,25 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 break;
             case Shooting:
                 // Shoot at position 6
-                if(!atShot) {
-                    if(!drive.isBusy()) {
-                        atShot = true;
-                        shooter.stopIntakeSystem();
-                        shooter.unblockShooter();
-                    }
-                } else {
+//                    targetShooterVelocity = updateTargetShooterVelocity();
+                if(shooting) {
                     limelight.update();
                     limelightTurretAutoAlign();
-//                    targetShooterVelocity = updateTargetShooterVelocity();
-                    if(shooting) {
-                        boolean isAligned = limelight.isAlignedForShooting();
-                        boolean timedOut = alignTimer.seconds() >= ALIGN_TIMEOUT;
-                        boolean shooterSpeedReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= Shooter.VELOCITY_TOLERANCE;
+                    boolean isAligned = limelight.isAlignedForShooting();
+                    boolean timedOut = alignTimer.seconds() >= ALIGN_TIMEOUT;
+                    boolean shooterSpeedReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= Shooter.VELOCITY_TOLERANCE;
 
-                        if(shooterSpeedReady && (isAligned || timedOut)) {
-                            shooter.unblockShooter();
-                            shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                            shootTimer.reset();
-                            shooting = false;
-                            targetShooterVelocity = updateTargetShooterVelocity();
-                        }
-                    } else {
-                        if(shootTimer.seconds() >= SHOOT_TIME) {
-                            shooter.blockShooter();
-                            shooter.stopIntakeSystem();
-                            setPathState(nextState);
-                        }
+                    if(shooterSpeedReady && (isAligned || timedOut)) {
+                        shooter.unblockShooter();
+                        shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                        shootTimer.reset();
+                        shooting = false;
+                    }
+                } else {
+                    if(shootTimer.seconds() >= SHOOT_TIME) {
+                        shooter.blockShooter();
+                        shooter.stopIntakeSystem();
+                        setPathState(nextState);
                     }
                 }
                 break;

@@ -20,7 +20,7 @@ public class Shooter {
 
     // Constants for shooter subsystem
     public static final double SHOOTER_MAX_POWER = 1.0;
-    public static final double SHOOTER_MIN_POWER = 0.3;
+    public static final double SHOOTER_MIN_POWER = 0.0;
     public static final double SHOOTER_HOLD_POWER = 0.5;
     public static final double VELOCITY_TOLERANCE = 50.0; // ticks per second tolerance for bang-bang controller
 
@@ -55,7 +55,7 @@ public class Shooter {
     
     // Limelight auto-align settings for turret
     public static final double LIMELIGHT_KP = 0.045;  // Proportional gain for alignment
-    public static final double LIMELIGHT_TOLERANCE = 2;  // Degrees tolerance for alignment
+    public static final double LIMELIGHT_TOLERANCE = 1;  // Degrees tolerance for alignment
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_CLOSE = 5.0;  // Degrees tolerance when close
     public static final double SHOOTER_READY_ALIGNMENT_TOLERANCE_FAR = 2.0;    // Degrees tolerance when far
     public static final double APRILTAG_AREA_CLOSE_THRESHOLD = 0.5;  // Area threshold for close vs far distance
@@ -412,13 +412,13 @@ public class Shooter {
     }
     public double getPowerConsumption(){
         double batteryVoltage = batteryVoltageSensor.getVoltage();
-        double totalCurrent = transferMotor.getCurrent(CurrentUnit.AMPS);
+        double totalCurrent = intakeMotor.getCurrent(CurrentUnit.AMPS) + transferMotor.getCurrent(CurrentUnit.AMPS);
 //intakeMotor.getCurrent(CurrentUnit.AMPS) +
         return totalCurrent * batteryVoltage;
     }
 
     public boolean issintakeFull(){
-        return getPowerConsumption() > 65;
+        return getPowerConsumption() > 90;
     }
 
     /**
