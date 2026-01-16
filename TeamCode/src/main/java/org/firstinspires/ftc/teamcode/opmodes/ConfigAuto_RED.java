@@ -242,7 +242,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(133.5, 64), new Pose(87.000, 73.000))
+                            new BezierLine(new Pose(134, 63.5), new Pose(87.000, 73.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(20), Math.toRadians(-12))
 //
