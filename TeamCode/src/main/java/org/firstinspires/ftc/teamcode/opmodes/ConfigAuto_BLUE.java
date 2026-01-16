@@ -228,7 +228,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(193), Math.toRadians(160))
 
                     .addPath(
-                            new BezierLine(new Pose(37.750, 63), new Pose(9.25, 62))
+                            new BezierLine(new Pose(37.750, 63), new Pose(9.25, 63))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(160))
                     .build();
@@ -238,7 +238,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(9.5, 62), new Pose(59.25, 72.000))
+                            new BezierLine(new Pose(9.25, 63), new Pose(59.25, 72.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(192))
 //
