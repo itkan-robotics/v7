@@ -227,12 +227,12 @@ public class ConfigAuto_RED extends LinearOpMode {
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(85.000, 74.000), new Pose(106.250, 64)) //64
+                            new BezierLine(new Pose(85.000, 74.000), new Pose(106.250, 63)) //64
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-13), Math.toRadians(15))
 
                     .addPath(
-                            new BezierLine(new Pose(106.250, 64), new Pose(134.5,64))
+                            new BezierLine(new Pose(106.250, 63), new Pose(134.5,63))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(15))
                     .build();
@@ -242,7 +242,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(134.5, 64), new Pose(86.000, 74.000))
+                            new BezierLine(new Pose(134.5, 63), new Pose(86.000, 74.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(20), Math.toRadians(-12))
 //
