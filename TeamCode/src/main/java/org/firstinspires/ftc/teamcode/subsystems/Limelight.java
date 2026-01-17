@@ -153,7 +153,7 @@ public class Limelight {
         double goalZ = tagZ + goalDistanceBehind * Math.cos(tagYaw);
 
         double targetTx = Math.toDegrees(Math.atan2(goalX, goalZ));
-        return targetTx + 5;
+        return targetTx;
     }
 
     /**
