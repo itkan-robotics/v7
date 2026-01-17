@@ -412,13 +412,13 @@ public class Shooter {
     }
     public double getPowerConsumption(){
         double batteryVoltage = batteryVoltageSensor.getVoltage();
-        double totalCurrent = intakeMotor.getCurrent(CurrentUnit.AMPS) + transferMotor.getCurrent(CurrentUnit.AMPS);
+        double totalCurrent = transferMotor.getCurrent(CurrentUnit.AMPS);
 //intakeMotor.getCurrent(CurrentUnit.AMPS) +
         return totalCurrent * batteryVoltage;
     }
 
     public boolean issintakeFull(){
-        return getPowerConsumption() > 90;
+        return getPowerConsumption() > 75;
     }
 
     /**

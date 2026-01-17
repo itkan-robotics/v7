@@ -60,7 +60,7 @@ public class ConfigAuto_RED extends LinearOpMode {
     // Target shooter velocity (will be updated from limelight)
     private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
     // Starting pose - MUST match the beginning of Path1!
-    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 111, 135, AngleUnit.RADIANS, Math.toRadians(-90));
+    private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 110, 135, AngleUnit.RADIANS, Math.toRadians(-90));
     boolean suicide = false;
 
     double gateTimer;
@@ -218,7 +218,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             Tape2ToSHoot2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(119.000, 60), new Pose(87.000, 72.000))
+                            new BezierLine(new Pose(119.000, 60), new Pose(85.000, 74.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -227,12 +227,12 @@ public class ConfigAuto_RED extends LinearOpMode {
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 72.000), new Pose(106.250, 64.5)) //64
+                            new BezierLine(new Pose(85.000, 74.000), new Pose(106.250, 64)) //64
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-13), Math.toRadians(15))
 
                     .addPath(
-                            new BezierLine(new Pose(106.250, 64.5), new Pose(135,64.5))
+                            new BezierLine(new Pose(106.250, 64), new Pose(134.5,64))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(15))
                     .build();
@@ -242,7 +242,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(135, 64.5), new Pose(87.000, 73.000))
+                            new BezierLine(new Pose(134.5, 64), new Pose(86.000, 74.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(20), Math.toRadians(-12))
 //
@@ -257,7 +257,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             Shoot3ToTape1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 73.000), new Pose(129.000, 86.75))
+                            new BezierLine(new Pose(86.000, 74.000), new Pose(128.000, 86.25))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -266,7 +266,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             tape1ToShoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(129.000, 86.5), new Pose(98, 85.000))
+                            new BezierLine(new Pose(128.000, 86.25), new Pose(97, 84.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -276,7 +276,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             Shoot4toCorner = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(98, 85.000), new Pose(98, 65))
+                            new BezierLine(new Pose(97, 84.000), new Pose(98, 65))
                     )
                     .setTangentHeadingInterpolation()
                     .addPath(
@@ -291,7 +291,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             CornertoShoot5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(128, 40.5), new Pose(87.000, 75.000))
+                            new BezierLine(new Pose(128, 40.5), new Pose(86.000, 76.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -299,14 +299,14 @@ public class ConfigAuto_RED extends LinearOpMode {
             Suicide = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 75.000), new Pose(131, 18))
+                            new BezierLine(new Pose(86.000, 76.000), new Pose(131, 18))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
             SuicideToShoot = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(131.000, 18.000), new Pose(87.000, 75.000))
+                            new BezierLine(new Pose(131.000, 18.000), new Pose(86.000, 76.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -315,7 +315,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             End = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.000, 75.000), new Pose(95, 70))
+                            new BezierLine(new Pose(86.000, 76.000), new Pose(95, 70))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
