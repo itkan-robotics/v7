@@ -417,7 +417,7 @@ public class Shooter {
     }
 
     public boolean issintakeFull(){
-        return getPowerConsumption() > 70;
+        return getPowerConsumption() > 80;
     }
 
     /**

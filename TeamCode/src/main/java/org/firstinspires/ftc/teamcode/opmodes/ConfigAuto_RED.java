@@ -192,7 +192,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             StartToShot = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(112.000, 135.000), new Pose(95.000, 88.000))
+                            new BezierLine(new Pose(111.000, 135.000), new Pose(95.000, 88.000))
                     )
 //                    .setConstantHeadingInterpolation(Math.toRadians(-100))
 //

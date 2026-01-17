@@ -253,7 +253,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             Shoot3ToTape1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57.000, 73.000), new Pose(18.000, 84))
+                            new BezierLine(new Pose(57.000, 73.000), new Pose(16.000, 84))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -262,7 +262,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             tape1ToShoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(18.000, 84), new Pose(46, 85.000))
+                            new BezierLine(new Pose(16.000, 84), new Pose(46, 85.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -402,7 +402,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === SECOND SHOT ===
             case GoToShooting2:
                 // Tape2ToShoot2: Return to shooting position 2
-                shooter.setTurretAngle(64);
+                shooter.setTurretAngle(62);
                 shooterRunning = true;
                 drive.followPathChain(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
@@ -427,7 +427,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === THIRD SHOT ===
             case ShootLever:
                 // LeverToShoot3
-                shooter.setTurretAngle(68);
+                shooter.setTurretAngle(67.67);
                 shooterRunning = true;
                 drive.followPathChain(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -446,7 +446,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === SIXTH SHOT (from tape 1) ===
             case Tape1Shoot:
                 // tape1ToShoot4: Go to shooting position
-                shooter.setTurretAngle(73);
+                shooter.setTurretAngle(74);
                 //  shooter.stopIntakeSystem();
                 shooterRunning = true;
                 drive.followPathChain(paths.tape1ToShoot4, true);
@@ -466,7 +466,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
 
             // === FINAL SHOT ===
             case CornerToShoot:
-                shooter.setTurretAngle(52);
+                shooter.setTurretAngle(50);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
@@ -487,7 +487,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 break;
 
             case SuicideToShoot:
-                shooter.setTurretAngle(44);
+                shooter.setTurretAngle(42);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
@@ -601,6 +601,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                     }
                 } else {
 //                    targetShooterVelocity = updateTargetShooterVelocity();
+
                     if(shooting) {
                         limelight.update();
                         limelightTurretAutoAlign();

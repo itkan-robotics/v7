@@ -38,7 +38,7 @@ public class Limelight {
     public static final double SHOOTER_DEFAULT_TPS = 1750.0;
 
     // Alignment thresholds
-    public static final double ALIGNMENT_TOLERANCE_CLOSE = 4;
+    public static final double ALIGNMENT_TOLERANCE_CLOSE = 2;
     public static final double ALIGNMENT_TOLERANCE_FAR = 5.0;
     public static final double AREA_CLOSE_THRESHOLD = 0.5;
 
@@ -153,7 +153,7 @@ public class Limelight {
         double goalZ = tagZ + goalDistanceBehind * Math.cos(tagYaw);
 
         double targetTx = Math.toDegrees(Math.atan2(goalX, goalZ));
-        return targetTx;
+        return targetTx + 5;
     }
 
     /**
