@@ -296,7 +296,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             End = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57, 75.000), new Pose(50, 68))
+                            new BezierLine(new Pose(57, 75.000), new Pose(50, 70))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
