@@ -214,7 +214,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             Tape2ToSHoot2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(25.000, 60), new Pose(57.000, 72.000))
+                            new BezierLine(new Pose(25.000, 60), new Pose(57.000, 73.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -223,12 +223,12 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             Shoot2ToLever = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57.000, 72.000), new Pose(37.750, 64)) //64
+                            new BezierLine(new Pose(57.000, 73.000), new Pose(37.750, 64)) //64
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(193), Math.toRadians(160))
 
                     .addPath(
-                            new BezierLine(new Pose(37.750, 64), new Pose(10, 64))
+                            new BezierLine(new Pose(37.750, 64), new Pose(9, 65))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(160))
                     .build();
@@ -238,7 +238,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
 
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10, 64), new Pose(57.000, 73.000))
+                            new BezierLine(new Pose(9, 65), new Pose(57.000, 73.000))
                     )
 //                    .setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(192))
 //
