@@ -488,7 +488,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             case Suicide:
                 shooter.blockShooter();
                 shooterRunning = false;
-                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                shooter.runIntakeSystem(1);
                 drive.followPathChain(paths.Suicide, true);
                 pathTimer.reset();
                 break;
