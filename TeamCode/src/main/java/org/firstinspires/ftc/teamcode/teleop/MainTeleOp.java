@@ -4,11 +4,13 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
+import org.firstinspires.ftc.teamcode.subsystems.PoseStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
-@TeleOp(name="MainTeleop", group="Linear Opmode")
+@TeleOp(name="MainTeleop1", group="Linear Opmode")
 public class MainTeleOp extends LinearOpMode {
 
     // Subsystems
@@ -89,7 +91,7 @@ public class MainTeleOp extends LinearOpMode {
             } else if (gamepad1.x) {
                 isRedAlliance = false;
             }
-        }
+            }
 
         // Apply the selected robot's constants
         RobotConstants.setRobot(selectedRobot);
@@ -99,6 +101,16 @@ public class MainTeleOp extends LinearOpMode {
             drive.applyPinpointSettings();
             shooter.applyMotorSettings();
         }
+
+        // If auto ran, use the saved alliance so pinpoint math is correct
+        // (Pinpoint keeps tracking from auto, so we need same starting offset)
+        if (PoseStorage.hasSavedPose()) {
+            isRedAlliance = PoseStorage.isRedAlliance();
+            telemetry.addData("Position Source", "Continuous from Auto");
+        } else {
+            telemetry.addData("Position Source", "Default (no auto)");
+        }
+        telemetry.update();
 
         // NOW initialize servos (after pinpoint IMU has calibrated)
         shooter.initServos();
@@ -315,6 +327,7 @@ public class MainTeleOp extends LinearOpMode {
                 drive.setOdometryPosition(fieldCenterX, fieldCenterY, 270.0);
             }
             lastLeftStickButton = leftStickButton;
+            
 
             // ==================== TELEMETRY ====================
             telemetry.addData("=== STATUS ===", "");
@@ -374,7 +387,9 @@ public class MainTeleOp extends LinearOpMode {
 
             telemetry.update();
         }
-
+        PoseStorage.x = drive.getCurrentPose().getX(DistanceUnit.INCH);
+        PoseStorage.y = drive.getCurrentPose().getY(DistanceUnit.INCH);
+        PoseStorage.heading = drive.getCurrentPose().getHeading(AngleUnit.DEGREES);
         // Stop everything
         drive.stopMotors();
         shooter.stopAll();

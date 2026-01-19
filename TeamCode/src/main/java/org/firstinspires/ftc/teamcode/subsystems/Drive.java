@@ -12,6 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.subsystems.PoseStorage;
 import org.firstinspires.ftc.teamcode.teleop.RobotConstants;
 
 import com.pedropathing.follower.Follower;
@@ -96,8 +97,8 @@ public class Drive {
 
         // Initialize Pedro Pathing Follower using Constants builder
         follower = Constants.createFollower(hardwareMap);
-        startingPose = getCurrentPose();
-
+        // Starting pose will be set by the OpMode based on alliance selection
+        
         // Initialize drivetrain motors
         frontLeft = hardwareMap.get(DcMotorEx.class, "front_left");
         frontRight = hardwareMap.get(DcMotorEx.class, "front_right");
@@ -159,16 +160,24 @@ public class Drive {
     }
 
     public double getRobotStartX() {
-        return startingPose.getX(DistanceUnit.INCH);
+
+//        return isRedAlliance ? ROBOT_START_X_RED : ROBOT_START_X_BLUE;'
+        return PoseStorage.x;
     }
 
     public double getRobotStartY() {
-        return startingPose.getY(DistanceUnit.INCH);
+
+//        return isRedAlliance ? ROBOT_START_Y_RED : ROBOT_START_Y_BLUE;
+        return PoseStorage.y;
     }
 
+
     public double getRobotStartHeading() {
-        return startingPose.getHeading(AngleUnit.DEGREES);
+
+//        return isRedAlliance ? ROBOT_START_HEADING_RED : ROBOT_START_HEADING_BLUE;
+        return PoseStorage.heading;
     }
+
 
     // ========== MECANUM DRIVE ==========
 

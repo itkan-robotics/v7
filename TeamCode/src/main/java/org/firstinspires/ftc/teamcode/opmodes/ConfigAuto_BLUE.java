@@ -12,6 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.subsystems.Limelight;
+import org.firstinspires.ftc.teamcode.subsystems.PoseStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
 import com.pedropathing.follower.Follower;
@@ -96,6 +97,8 @@ public class ConfigAuto_BLUE extends LinearOpMode {
         shooter.setIndexerMiddle();
 
         drive.setStartingPose(startPose);
+        PoseStorage.savePose(startPose);  // Save initial pose for TeleOp
+        PoseStorage.setAlliance(false);   // Blue alliance
         paths = new Paths(drive.getFollower());
 
 
@@ -155,6 +158,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
         // === MAIN LOOP ===
         while (opModeIsActive()) {
             drive.update(); // Update Pedro Pathing
+            PoseStorage.savePose(drive.getCurrentPose()); // Save pose for TeleOp
             //limelight.update(); // Update Limelight
             autonomousPathUpdate(); // Update autonomous state machine
 
@@ -164,6 +168,10 @@ public class ConfigAuto_BLUE extends LinearOpMode {
 
             panelsTelemetry.update(telemetry);
         }
+
+        PoseStorage.x = drive.getCurrentPose().getX(DistanceUnit.INCH);
+        PoseStorage.y = drive.getCurrentPose().getY(DistanceUnit.INCH);
+        PoseStorage.heading = drive.getCurrentPose().getHeading(AngleUnit.DEGREES);
     }
 
 

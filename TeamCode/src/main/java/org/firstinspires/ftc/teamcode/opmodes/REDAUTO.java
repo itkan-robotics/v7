@@ -13,6 +13,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.subsystems.Limelight;
+import org.firstinspires.ftc.teamcode.subsystems.PoseStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
 import com.pedropathing.follower.Follower;
@@ -68,6 +69,8 @@ public class REDAUTO extends LinearOpMode {
         shooter.setIndexerMiddle();
 
         drive.setStartingPose(startPose);
+        PoseStorage.savePose(startPose);  // Save initial pose for TeleOp
+        PoseStorage.setAlliance(true);    // Red alliance
         paths = new Paths(drive.getFollower());
         pathState = 0;
 
@@ -95,6 +98,7 @@ public class REDAUTO extends LinearOpMode {
         // === MAIN LOOP ===
         while (opModeIsActive()) {
             drive.update(); // Update Pedro Pathing
+            PoseStorage.savePose(drive.getCurrentPose()); // Save pose for TeleOp
             //limelight.update(); // Update Limelight
             autonomousPathUpdate(); // Update autonomous state machine
 

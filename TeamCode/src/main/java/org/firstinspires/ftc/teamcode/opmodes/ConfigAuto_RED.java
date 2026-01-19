@@ -12,6 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.subsystems.Limelight;
+import org.firstinspires.ftc.teamcode.subsystems.PoseStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
 import com.pedropathing.follower.Follower;
@@ -97,6 +98,8 @@ public class ConfigAuto_RED extends LinearOpMode {
         shooter.setIndexerMiddle();
 
         drive.setStartingPose(startPose);
+        PoseStorage.savePose(startPose);  // Save initial pose for TeleOp
+        PoseStorage.setAlliance(true);    // Red alliance
         paths = new Paths(drive.getFollower());
 
 
@@ -168,6 +171,9 @@ public class ConfigAuto_RED extends LinearOpMode {
 
             panelsTelemetry.update(telemetry);
         }
+        PoseStorage.x = drive.getCurrentPose().getX(DistanceUnit.INCH);
+        PoseStorage.y = drive.getCurrentPose().getY(DistanceUnit.INCH);
+        PoseStorage.heading = drive.getCurrentPose().getHeading(AngleUnit.DEGREES);
     }
 
 
