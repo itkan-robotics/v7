@@ -1,13 +1,11 @@
-package org.firstinspires.ftc.teamcode.teleop;
+package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.Constants.RobotConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
-import org.firstinspires.ftc.teamcode.subsystems.PoseStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
 @TeleOp(name="MainTeleop1", group="Linear Opmode")
@@ -102,15 +100,9 @@ public class MainTeleOp extends LinearOpMode {
             shooter.applyMotorSettings();
         }
 
-        // If auto ran, use the saved alliance so pinpoint math is correct
+        // If auto ran, use the saved alliance and pose so pinpoint math is correct
         // (Pinpoint keeps tracking from auto, so we need same starting offset)
-        if (PoseStorage.hasSavedPose()) {
-            isRedAlliance = PoseStorage.isRedAlliance();
-            telemetry.addData("Position Source", "Continuous from Auto");
-        } else {
-            telemetry.addData("Position Source", "Default (no auto)");
-        }
-        telemetry.update();
+
 
         // NOW initialize servos (after pinpoint IMU has calibrated)
         shooter.initServos();
@@ -145,11 +137,8 @@ public class MainTeleOp extends LinearOpMode {
             drive.mecanumDrive(driveInput, strafe, rotate, 1.0);
 
             // ==================== TURRET CONTROL ====================
-            boolean inputLowEnough = driveInputPower < 0.50;
-            boolean velocityLowEnough = drive.getVelocityMagnitude() < 500;
-            boolean allowVisualTracking = inputLowEnough && velocityLowEnough;
-
-            shooter.pointTurretAtGoal(isRedAlliance, allowVisualTracking);
+            // TURRET SERVO CODE REMOVED - Now using motor instead
+            // TODO: Implement turret motor control
 
             // ==================== SHOOTER CONTROL ====================
             boolean dpadUp = gamepad1.dpad_up;
@@ -184,15 +173,18 @@ public class MainTeleOp extends LinearOpMode {
             if (leftBumper) {
                 drive.setPositionOverride(72.0, 30.0);
                 shooter.setDefaultTPSOverride(1750.0);
-                shooter.setCloseShotOverride(false);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setCloseShotOverride(false);
             } else if (rightBumper) {
                 drive.setPositionOverride(72.0, 90.0);
                 shooter.setDefaultTPSOverride(1550.0);
-                shooter.setCloseShotOverride(true);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setCloseShotOverride(true);
             } else {
                 drive.clearPositionOverride();
                 shooter.clearDefaultTPSOverride();
-                shooter.setCloseShotOverride(false);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setCloseShotOverride(false);
             }
 
             double currentTPS = shooter.getShooterTPS();
@@ -204,14 +196,12 @@ public class MainTeleOp extends LinearOpMode {
             }
 
             // Apply far shot tx offset when TPS > 1650 (only for 21171)
-            if (RobotConstants.hasFarShotTxOffset() && targetTPS > 1650) {
-                shooter.setFarShotTxOffset(2.5);
-            } else {
-                shooter.clearFarShotTxOffset();
-            }
+            // TURRET SERVO CODE REMOVED - Now using motor instead
+            // TODO: Implement turret motor tx offset logic
 
             boolean shooterReady = shooter.isShooterSpeedReady(targetTPS);
-            boolean turretOnTarget = shooter.isTurretOnTarget(isRedAlliance);
+            // TURRET SERVO CODE REMOVED - Now using motor instead
+            boolean turretOnTarget = false; // TODO: Implement turret motor on-target check
 
             // ==================== INTAKE/TRANSFER CONTROLS ====================
             boolean feeding = false;
@@ -220,9 +210,11 @@ public class MainTeleOp extends LinearOpMode {
                 shootingLatched = false;
             } else {
                 if (shootingLatched) {
-                    if (!turretOnTarget) {
-                        shootingLatched = false;
-                    }
+                    // TURRET SERVO CODE REMOVED - Now using motor instead
+                    // TODO: Implement turret motor on-target check
+                    // if (!turretOnTarget) {
+                    //     shootingLatched = false;
+                    // }
                 } else {
                     if (shooterReady) {
                         shootingLatched = true;
@@ -230,7 +222,8 @@ public class MainTeleOp extends LinearOpMode {
                 }
             }
 
-            boolean turretVisual = shooter.isTurretUsingVisualTracking();
+            // TURRET SERVO CODE REMOVED - Now using motor instead
+            boolean turretVisual = false; // TODO: Implement turret motor visual tracking check
             if (shootButtonPressed) {
                 shooter.setBlocker(false);
             }
@@ -302,8 +295,8 @@ public class MainTeleOp extends LinearOpMode {
                 feeding,
                 feeding && SHOOTING && shooterReady,
                 detectedTagId > 0,
-                turretOnTarget,
-                turretVisual,
+                turretOnTarget, // TURRET SERVO CODE REMOVED - Now using motor instead
+                turretVisual, // TURRET SERVO CODE REMOVED - Now using motor instead
                 hasThreeBalls
             );
 
@@ -343,29 +336,9 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addData("Ready", shooterReady ? "YES" : "NO");
 
             telemetry.addData("=== TURRET DEBUG ===", "");
-            telemetry.addData("Mode", turretVisual ? "VISUAL (Limelight)" : "POSITION (Odometry)");
-            if (!turretVisual) {
-                if (!inputLowEnough) {
-                    telemetry.addData("Visual OFF", "Input too high (%.0f%%)", driveInputPower * 100);
-                } else if (!velocityLowEnough) {
-                    telemetry.addData("Visual OFF", "Velocity too high (%.0f mm/s)", drive.getVelocityMagnitude());
-                } else if (detectedTagId <= 0) {
-                    telemetry.addData("Visual OFF", "No AprilTag detected");
-                } else {
-                    telemetry.addData("Visual OFF", "Wrong tag (got %d)", detectedTagId);
-                }
-            }
-            telemetry.addData("Tx Offset", "%.2f°", shooter.getTargetTxOffset());
-            telemetry.addData("Robot X/Y", "%.1f / %.1f in",
-                drive.getOdometryX() / 25.4,
-                drive.getOdometryY() / 25.4);
-            telemetry.addData("Predicted X/Y", "%.1f / %.1f in",
-                drive.getPredictedX() / 25.4,
-                drive.getPredictedY() / 25.4);
-            telemetry.addData("Velocity", "%.0f mm/s", drive.getVelocityMagnitude());
-            telemetry.addData("Robot Heading", "%.1f°", drive.getOdometryHeading());
-            telemetry.addData("Turret Angle", "%.1f°", shooter.getTurretAngle());
-            telemetry.addData("On Target", turretOnTarget ? "YES" : "NO");
+            // TURRET SERVO CODE REMOVED - Now using motor instead
+            // TODO: Implement turret motor telemetry
+            telemetry.addData("Status", "Turret motor control not yet implemented");
 
             telemetry.addData("=== LIMELIGHT ===", "");
             if (hasTarget) {
@@ -387,9 +360,6 @@ public class MainTeleOp extends LinearOpMode {
 
             telemetry.update();
         }
-        PoseStorage.x = drive.getCurrentPose().getX(DistanceUnit.INCH);
-        PoseStorage.y = drive.getCurrentPose().getY(DistanceUnit.INCH);
-        PoseStorage.heading = drive.getCurrentPose().getHeading(AngleUnit.DEGREES);
         // Stop everything
         drive.stopMotors();
         shooter.stopAll();

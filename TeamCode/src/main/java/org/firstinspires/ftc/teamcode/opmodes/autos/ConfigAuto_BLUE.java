@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes;
+package org.firstinspires.ftc.teamcode.opmodes.autos;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
@@ -12,8 +12,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.subsystems.Limelight;
-import org.firstinspires.ftc.teamcode.subsystems.PoseStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
@@ -29,9 +29,9 @@ public class ConfigAuto_BLUE extends LinearOpMode {
     //multiply turrent heading by -1
     ElapsedTime IntakeTimer;
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
-    private Drive drive;
     private Limelight limelight;
     private Shooter shooter;
+    private Follower follower; // Pedro Pathing follower
 
     private Paths paths; // Paths defined in the Paths class
 
@@ -91,15 +91,18 @@ public class ConfigAuto_BLUE extends LinearOpMode {
         // === INIT ===
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
-        drive = new Drive(hardwareMap);
         limelight = new Limelight(hardwareMap);
         shooter = new Shooter(hardwareMap);
         shooter.setIndexerMiddle();
 
-        drive.setStartingPose(startPose);
-        PoseStorage.savePose(startPose);  // Save initial pose for TeleOp
-        PoseStorage.setAlliance(false);   // Blue alliance
-        paths = new Paths(drive.getFollower());
+        // Initialize Pedro Pathing follower directly
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(new Pose(
+                startPose.getX(DistanceUnit.INCH),
+                startPose.getY(DistanceUnit.INCH),
+                startPose.getHeading(AngleUnit.RADIANS)
+        ));
+        paths = new Paths(follower);
 
 
         limelight.start();
@@ -157,8 +160,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
         setPathState(State.StartToShoot);
         // === MAIN LOOP ===
         while (opModeIsActive()) {
-            drive.update(); // Update Pedro Pathing
-            PoseStorage.savePose(drive.getCurrentPose()); // Save pose for TeleOp
+            follower.update(); // Update Pedro Pathing
             //limelight.update(); // Update Limelight
             autonomousPathUpdate(); // Update autonomous state machine
 
@@ -168,10 +170,6 @@ public class ConfigAuto_BLUE extends LinearOpMode {
 
             panelsTelemetry.update(telemetry);
         }
-
-        PoseStorage.x = drive.getCurrentPose().getX(DistanceUnit.INCH);
-        PoseStorage.y = drive.getCurrentPose().getY(DistanceUnit.INCH);
-        PoseStorage.heading = drive.getCurrentPose().getHeading(AngleUnit.DEGREES);
     }
 
 
@@ -340,28 +338,11 @@ public class ConfigAuto_BLUE extends LinearOpMode {
         }
     }
 
+    // TURRET SERVO CODE REMOVED - Now using motor instead
+    // TODO: Implement turret motor auto-align using PID
     private boolean limelightTurretAutoAlign() {
-        if (!limelight.hasTarget()) {
-            return false;
-        }
-
-        int tagId = limelight.getAprilTagId();
-        if (tagId != 24) {
-            return false;
-        }
-
-        double tx = limelight.getTx();
-        double targetOffset = limelight.calculateTargetOffset();
-        double error = tx - targetOffset;
-
-        if (Math.abs(error) > Shooter.LIMELIGHT_TOLERANCE) {
-            double currentTurretAngle = shooter.getTurretAngle();
-            double turretAdjustment = -error * Shooter.LIMELIGHT_KP;
-            double newTurretAngle = currentTurretAngle + turretAdjustment;
-            shooter.setTurretAngle(newTurretAngle);
-            return true;
-        }
-
+        // TURRET SERVO CODE REMOVED - Now using motor instead
+        // TODO: Implement turret motor PID control based on limelight tx
         return false;
     }
 
@@ -376,10 +357,11 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === FIRST SHOT ===
             case StartToShoot:
                 // StartToShot: Go to first shooting position
-                shooter.setTurretAngle(6);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setTurretAngle(6);
                 shooter.setIndexerMiddle();
                 shooterRunning = true;
-                drive.followPathChain(paths.StartToShot, true);
+                follower.followPath(paths.StartToShot, true);
                 pathTimer.reset();
                 break;
             case Shooting:
@@ -398,7 +380,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 // Shoot1ToTape2: Go to tape 2 with intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                drive.followPathChain(paths.Shoot1ToTape2, true);
+                follower.followPath(paths.Shoot1ToTape2, true);
                 pathTimer.reset();
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
                 break;
@@ -410,9 +392,10 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === SECOND SHOT ===
             case GoToShooting2:
                 // Tape2ToShoot2: Return to shooting position 2
-                shooter.setTurretAngle(64);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setTurretAngle(64);
                 shooterRunning = true;
-                drive.followPathChain(paths.Tape2ToSHoot2, true);
+                follower.followPath(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
                 atShot = false;
                 break;
@@ -423,7 +406,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 shooter.blockShooter();
                 shooterRunning = false;
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                drive.followPathChain(paths.Shoot2ToLever, true);
+                follower.followPath(paths.Shoot2ToLever, true);
                 pathTimer.reset();
                 break;
 
@@ -435,9 +418,10 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === THIRD SHOT ===
             case ShootLever:
                 // LeverToShoot3
-                shooter.setTurretAngle(69);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setTurretAngle(69);
                 shooterRunning = true;
-                drive.followPathChain(paths.LeverToShoot3, true);
+                follower.followPath(paths.LeverToShoot3, true);
                 pathTimer.reset();
                 break;
 
@@ -447,17 +431,18 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 shooter.blockShooter();
                 shooterRunning = false;
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                drive.followPathChain(paths.Shoot3ToTape1, true);
+                follower.followPath(paths.Shoot3ToTape1, true);
                 pathTimer.reset();
                 break;
 
             // === SIXTH SHOT (from tape 1) ===
             case Tape1Shoot:
                 // tape1ToShoot4: Go to shooting position
-                shooter.setTurretAngle(76);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setTurretAngle(76);
                 //  shooter.stopIntakeSystem();
                 shooterRunning = true;
-                drive.followPathChain(paths.tape1ToShoot4, true);
+                follower.followPath(paths.tape1ToShoot4, true);
                 pathTimer.reset();
                 break;
 
@@ -467,39 +452,41 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 shooter.blockShooter();
                 shooterRunning = false;
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                drive.followPathChain(paths.Shoot4toCorner, true);
+                follower.followPath(paths.Shoot4toCorner, true);
                 pathTimer.reset();
                 break;
 
 
             // === FINAL SHOT ===
             case CornerToShoot:
-                shooter.setTurretAngle(52);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setTurretAngle(52);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
-                drive.followPathChain(paths.CornertoShoot5, true);
+                follower.followPath(paths.CornertoShoot5, true);
                 pathTimer.reset();
                 break;
 
             case End:
-                drive.followPathChain(paths.End, true);
+                follower.followPath(paths.End, true);
                 break;
 
             case Suicide:
                 shooter.blockShooter();
                 shooterRunning = false;
                 shooter.runIntakeSystem(Shooter.INTAKE_POWER);
-                drive.followPathChain(paths.Suicide, true);
+                follower.followPath(paths.Suicide, true);
                 pathTimer.reset();
                 break;
 
             case SuicideToShoot:
-                shooter.setTurretAngle(44);
+                // TURRET SERVO CODE REMOVED - Now using motor instead
+                // shooter.setTurretAngle(44);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
-                drive.followPathChain(paths.SuicideToShoot, true);
+                follower.followPath(paths.SuicideToShoot, true);
                 pathTimer.reset();
                 break;
         }
@@ -514,7 +501,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === FIRST SHOT ===
             case StartToShoot:
                 // Following StartToShot to first shooting position
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     nextState = State.ToTape2;
                 }
@@ -523,7 +510,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === TO TAPE 2 ===
             case ToTape2:
                 // Following Shoot1ToTape2
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.IntakeTimerReset);
                     nextState = State.GoToShooting2;
                 }
@@ -532,7 +519,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === SECOND SHOT ===
             case GoToShooting2:
                 // Following Tape2ToShoot2
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     nextState = State.ToLever;
                 }
@@ -542,7 +529,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === TO LEVER (first cycle) ===
             case ToLever:
                 // Following Shoot2ToLever
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.WaitAtLever);
                 }
                 break;
@@ -560,7 +547,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
                 if(pathTimer.seconds() > 0.5) {
                     shooter.stopIntakeSystem();
                 }
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     gateCycles --;
                     if(gateCycles > 0){
@@ -575,14 +562,14 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === TO TAPE 1 ===
             case ToTape1:
                 // Following Shoot3ToTape1
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.IntakeTimerReset);
                     nextState = State.Tape1Shoot;
                 }
                 break;
             case IntakeTimerReset:
                 // Immediately transition (no wait for tape positions)
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(nextState);
                 }
                 break;
@@ -590,7 +577,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === SIXTH SHOT (from tape 1) ===
             case Tape1Shoot:
                 // Following tape1ToShoot4
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     if(suicide){
                         nextState = State.Suicide;
@@ -602,7 +589,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             case Shooting:
                 // Shoot at position 6
                 if(!atShot) {
-                    if(!drive.isBusy()) {
+                    if(!follower.isBusy()) {
                         atShot = true;
                         shooter.stopIntakeSystem();
                         shooter.unblockShooter();
@@ -636,7 +623,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === TO CORNER ===
             case ToCorner:
                 // Following Shoot4toCorner
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.IntakeTimerReset);
                     nextState = State.CornerToShoot;
 
@@ -646,20 +633,20 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             // === FINAL SHOT ===
             case CornerToShoot:
                 // Following CornertoShoot5
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     nextState = State.End;
                 }
                 break;
 
             case Suicide:
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.SuicideToShoot);
                 }
                 break;
 
             case SuicideToShoot:
-                if (!drive.isBusy()) {
+                if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     nextState = State.End;
                 }

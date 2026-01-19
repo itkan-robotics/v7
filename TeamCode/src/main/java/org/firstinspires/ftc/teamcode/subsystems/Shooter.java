@@ -14,7 +14,7 @@ import com.qualcomm.hardware.limelightvision.LLResultTypes;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
-import org.firstinspires.ftc.teamcode.teleop.RobotConstants;
+import org.firstinspires.ftc.teamcode.Constants.RobotConstants;
 
 /**
  * Shooter subsystem - combines shooter motor, turret, intake/transfer, and LED control
@@ -25,8 +25,7 @@ public class Shooter {
     private DcMotorEx shooterMotor;
     private DcMotorEx intakeTransferMotor;  // Single motor for intake and transfer
     private Servo blockerServo;
-    private Servo turretServo;
-    private Servo turretServo2;  // Second turret servo (only on some robots)
+    // TURRET SERVO REMOVED - Now using motor instead
     private Servo climberServo;
     private ServoImplEx lightServo;
     private VoltageSensor voltageSensor;
@@ -50,22 +49,14 @@ public class Shooter {
     public static final double LIMELIGHT_KP = 0.035;
 
     // ========== TURRET CONSTANTS ==========
-    public static final double TURRET_CENTER_POSITION = 0.495;
-    public static final double TURRET_90_POSITION = 0.645;
-    public static final double TURRET_NEG90_POSITION = 0.335;
-    public static final double TURRET_MIN_SERVO = 0.185;
-    public static final double TURRET_MAX_SERVO = 0.85;
-    public static final double TURRET_DEGREES_PER_SERVO_UNIT = 580.65;
-    public static final double TURRET_SERVO_SPEED = 0.3;
-    public static final double TURRET_TOLERANCE_FAR = 2.0;
-    public static final double TURRET_TOLERANCE_FAR_DIST = 150.0;
+    // TURRET SERVO CONSTANTS REMOVED - Now using motor instead
 
     // Goal positions (mm)
     public static final double INCHES_TO_MM = 25.4;
     public static final double GOAL_RED_X = 138.0 * INCHES_TO_MM;
-    public static final double GOAL_RED_Y = 138.0 * INCHES_TO_MM;
-    public static final double GOAL_BLUE_X = 4.0 * INCHES_TO_MM;
-    public static final double GOAL_BLUE_Y = 138.0 * INCHES_TO_MM;
+    public static final double GOAL_RED_Y = 143.5 * INCHES_TO_MM;
+    public static final double GOAL_BLUE_X = 6.0 * INCHES_TO_MM;
+    public static final double GOAL_BLUE_Y = 143.5 * INCHES_TO_MM;
 
     // ========== INTAKE CONSTANTS ==========
     public static final double THREE_BALL_POWER_THRESHOLD = 62.0;
@@ -102,17 +93,7 @@ public class Shooter {
     private boolean lastBlockerState = true;
 
     // Turret state
-    private boolean turretUsingVisualTracking = false;
-    private double currentTurretKP = 0.0001;
-    private double estimatedServoPosition = TURRET_CENTER_POSITION;
-    private double targetServoPosition = TURRET_CENTER_POSITION;
-    private long lastServoUpdateTime = System.currentTimeMillis();
-    private double targetTxOffset = 0.0;
-    private double manualTxOffset = 0.0;
-    private double autoTxOffset = 0.0;
-    private double farShotTxOffset = 0.0;
-    private boolean closeShotOverride = false;
-    private double currentTurretTolerance = TURRET_TOLERANCE_FAR;
+    // TURRET SERVO STATE REMOVED - Now using motor instead
 
     // Cached limelight data
     private LLResult cachedLimelightResult = null;
@@ -170,11 +151,7 @@ public class Shooter {
         // Initialize blocker servo
         blockerServo = hardwareMap.get(Servo.class, "blocker_servo");
 
-        // Initialize turret servo(s)
-        turretServo = hardwareMap.get(Servo.class, "turret_servo");
-        if (RobotConstants.hasDualTurretServos()) {
-            turretServo2 = hardwareMap.get(Servo.class, "turret_servo2");
-        }
+        // TURRET SERVO INITIALIZATION REMOVED - Now using motor instead
 
         // Initialize climber servo
         climberServo = hardwareMap.get(Servo.class, "climber_servo");
@@ -198,11 +175,7 @@ public class Shooter {
      * Initialize all servos to default positions. Call after pinpoint has reset.
      */
     public void initServos() {
-        turretServo.setPosition(TURRET_CENTER_POSITION);
-        if (RobotConstants.hasDualTurretServos() && turretServo2 != null) {
-            turretServo2.setPosition(TURRET_CENTER_POSITION);
-        }
-        initEstimatedServoPosition(TURRET_CENTER_POSITION);
+        // TURRET SERVO INITIALIZATION REMOVED - Now using motor instead
 
         blockerServo.setPosition(RobotConstants.getBlockerBlocked());
         lastBlockerState = true;
@@ -402,242 +375,8 @@ public class Shooter {
     }
 
     // ========== TURRET CONTROL ==========
-
-    private void setTurretServos(double position) {
-        turretServo.setPosition(position);
-        if (RobotConstants.hasDualTurretServos() && turretServo2 != null) {
-            turretServo2.setPosition(position);
-        }
-    }
-
-    public double turretAngleToServoPosition(double turretAngle) {
-        double servoPosition = TURRET_CENTER_POSITION - (turretAngle / TURRET_DEGREES_PER_SERVO_UNIT);
-
-        if (servoPosition < TURRET_MIN_SERVO) {
-            servoPosition = TURRET_MIN_SERVO;
-        } else if (servoPosition > TURRET_MAX_SERVO) {
-            servoPosition = TURRET_MAX_SERVO;
-        }
-
-        return servoPosition;
-    }
-
-    public double clampTurretServo(double servoPosition) {
-        if (servoPosition < TURRET_MIN_SERVO) return TURRET_MIN_SERVO;
-        if (servoPosition > TURRET_MAX_SERVO) return TURRET_MAX_SERVO;
-        return servoPosition;
-    }
-
-    public void setTurretAngle(double turretAngle) {
-        double servoPosition = turretAngleToServoPosition(turretAngle);
-        initEstimatedServoPosition(servoPosition);
-        setTurretServos(servoPosition);
-    }
-
-    public void setTurretHome() {
-        initEstimatedServoPosition(TURRET_CENTER_POSITION);
-        setTurretServos(TURRET_CENTER_POSITION);
-    }
-
-    public double getTurretAngle() {
-        double servoPosition = turretServo.getPosition();
-        return -(servoPosition - TURRET_CENTER_POSITION) * TURRET_DEGREES_PER_SERVO_UNIT;
-    }
-
-    public double getTurretServoPosition() {
-        return turretServo.getPosition();
-    }
-
-    private void updateEstimatedServoPosition() {
-        long currentTime = System.currentTimeMillis();
-        double deltaTime = (currentTime - lastServoUpdateTime) / 1000.0;
-        lastServoUpdateTime = currentTime;
-
-        double maxMovement = TURRET_SERVO_SPEED * deltaTime;
-        double positionDiff = targetServoPosition - estimatedServoPosition;
-
-        if (Math.abs(positionDiff) <= maxMovement) {
-            estimatedServoPosition = targetServoPosition;
-        } else {
-            estimatedServoPosition += Math.signum(positionDiff) * maxMovement;
-        }
-    }
-
-    public void initEstimatedServoPosition(double position) {
-        estimatedServoPosition = position;
-        targetServoPosition = position;
-        lastServoUpdateTime = System.currentTimeMillis();
-    }
-
-    public double calculateTurretAngleToGoal(double goalX, double goalY) {
-        if (drive == null) {
-            return 0.0;  // Can't calculate without drive reference
-        }
-        double robotX = drive.getPredictedX();
-        double robotY = drive.getPredictedY();
-        double robotHeading = drive.getOdometryHeading();
-
-        double deltaX = goalX - robotX;
-        double deltaY = goalY - robotY;
-        double fieldAngleToGoal = -Math.toDegrees(Math.atan2(deltaY, deltaX));
-
-        double headingSign = RobotConstants.getTurretHeadingSign();
-        double fieldOffset = RobotConstants.getTurretFieldOffset();
-        double turretAngle = fieldAngleToGoal - (headingSign * robotHeading) - fieldOffset;
-
-        while (turretAngle > 180.0) turretAngle -= 360.0;
-        while (turretAngle < -180.0) turretAngle += 360.0;
-
-        return turretAngle;
-    }
-
-    public void pointTurretAtGoal(boolean isRedAlliance, boolean allowVisualTracking) {
-        int expectedTagId = isRedAlliance ? 24 : 20;
-        int detectedTagId = getDetectedAprilTagId(isRedAlliance);
-
-        if (allowVisualTracking && detectedTagId == expectedTagId) {
-            turretUsingVisualTracking = true;
-            pointTurretVisual(isRedAlliance);
-        } else {
-            turretUsingVisualTracking = false;
-            pointTurretByPosition(isRedAlliance);
-        }
-    }
-
-    private void pointTurretVisual(boolean isRedAlliance) {
-        updateEstimatedServoPosition();
-
-        double tx = getLimelightTx(isRedAlliance);
-
-        if (closeShotOverride) {
-            targetTxOffset = 0.0;
-        } else {
-            calculateAutoTxOffset();
-            double allianceAutoOffset = isRedAlliance ? autoTxOffset : -autoTxOffset;
-            targetTxOffset = allianceAutoOffset + manualTxOffset + farShotTxOffset;
-        }
-
-        double ta = getAprilTagArea();
-        double distanceInches = 100.0;
-        if (ta > 0.1) {
-            distanceInches = 50.0 / Math.sqrt(ta);
-        }
-
-        currentTurretKP = calculateDynamicKP(distanceInches);
-
-        double error = targetTxOffset - tx;
-        double adjustment = currentTurretKP * error;
-
-        double newServo = estimatedServoPosition + adjustment;
-        newServo = clampTurretServo(newServo);
-
-        setTurretServos(newServo);
-        targetServoPosition = newServo;
-    }
-
-    private void pointTurretByPosition(boolean isRedAlliance) {
-        updateEstimatedServoPosition();
-
-        double goalX = isRedAlliance ? GOAL_RED_X : GOAL_BLUE_X;
-        double goalY = isRedAlliance ? GOAL_RED_Y : GOAL_BLUE_Y;
-
-        double turretAngle = calculateTurretAngleToGoal(goalX, goalY);
-        double servoPosition = turretAngleToServoPosition(turretAngle);
-        servoPosition = clampTurretServo(servoPosition);
-
-        setTurretServos(servoPosition);
-        targetServoPosition = servoPosition;
-    }
-
-    private double calculateDynamicKP(double distanceInches) {
-        double kpFar = RobotConstants.getTurretKpFar();
-        double kpClose = RobotConstants.getTurretKpClose();
-        double closeDist = RobotConstants.getTurretToleranceCloseDist();
-
-        if (distanceInches >= TURRET_TOLERANCE_FAR_DIST) return kpFar;
-        if (distanceInches <= closeDist) return kpClose;
-
-        double range = TURRET_TOLERANCE_FAR_DIST - closeDist;
-        double t = (distanceInches - closeDist) / range;
-        return kpClose + (kpFar - kpClose) * t;
-    }
-
-    private double calculateDynamicTolerance(double distanceInches) {
-        double toleranceClose = RobotConstants.getTurretToleranceClose();
-        double closeDist = RobotConstants.getTurretToleranceCloseDist();
-
-        if (distanceInches >= TURRET_TOLERANCE_FAR_DIST) return TURRET_TOLERANCE_FAR;
-        if (distanceInches <= closeDist) return toleranceClose;
-
-        double range = TURRET_TOLERANCE_FAR_DIST - closeDist;
-        double t = (distanceInches - closeDist) / range;
-        return toleranceClose + (TURRET_TOLERANCE_FAR - toleranceClose) * t;
-    }
-
-    public double calculateAutoTxOffset() {
-        if (drive == null) {
-            return 0.0;  // Can't calculate without drive reference
-        }
-        double fieldX = drive.getPredictedX() / INCHES_TO_MM;
-        double fieldY = drive.getPredictedY() / INCHES_TO_MM;
-
-        double txOffset = 0.0;
-
-        if (fieldY >= 130) {
-            if (fieldX >= 50 && fieldX <= 100) {
-                double t = (fieldX - 64) / (89 - 64);
-                txOffset = 9.4 + t * (8.4 - 9.4);
-            } else if (fieldX < 50) {
-                double t = fieldX / 50.0;
-                txOffset = t * 9.4;
-            } else {
-                double t = (fieldX - 100) / 30.0;
-                t = Math.min(1.0, t);
-                txOffset = 8.4 * (1.0 - t);
-            }
-        } else if (fieldY >= 80) {
-            txOffset = 0.0;
-        } else if (fieldY >= 30) {
-            double t = (80 - fieldY) / (80 - 35);
-            txOffset = -2.0 * t;
-        } else {
-            txOffset = -2.0;
-        }
-
-        autoTxOffset = txOffset;
-        return txOffset;
-    }
-
-    public double getTargetTxOffset() {
-        return targetTxOffset;
-    }
-
-    public void setFarShotTxOffset(double offset) {
-        farShotTxOffset = offset;
-    }
-
-    public void clearFarShotTxOffset() {
-        farShotTxOffset = 0.0;
-    }
-
-    public void setCloseShotOverride(boolean enabled) {
-        closeShotOverride = enabled;
-    }
-
-    public boolean isTurretUsingVisualTracking() {
-        return turretUsingVisualTracking;
-    }
-
-    public boolean isTurretOnTarget(boolean isRedAlliance) {
-        if (!turretUsingVisualTracking) return false;
-
-        double distanceToTag = getAprilTagDistance(isRedAlliance) / 25.4;
-        currentTurretTolerance = calculateDynamicTolerance(distanceToTag);
-
-        double tx = getLimelightTx(isRedAlliance);
-        double error = Math.abs(tx - targetTxOffset);
-        return error < currentTurretTolerance;
-    }
+    // TURRET SERVO CODE REMOVED - Now using motor instead
+    // All turret servo methods have been removed and replaced with placeholder comments
 
     // ========== LIMELIGHT FUNCTIONS ==========
 

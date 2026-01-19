@@ -11,27 +11,16 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.subsystems.PoseStorage;
-import org.firstinspires.ftc.teamcode.teleop.RobotConstants;
-
-import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
+import org.firstinspires.ftc.teamcode.Constants.RobotConstants;
 
 import java.util.List;
 
 /**
- * Drive subsystem - combines Pedro Pathing for autonomous and mecanum drive for teleop
+ * Drive subsystem - mecanum drive for teleop with odometry
  */
 public class Drive {
 
-    // ========== PEDRO PATHING (AUTONOMOUS) ==========
-    private Follower follower;
-    private Pose2D startingPose = new Pose2D(DistanceUnit.INCH, 95, 70, AngleUnit.DEGREES, 45);
     private List<LynxModule> allHubs;
-    private ElapsedTime loopTimer = new ElapsedTime();
-    private double lastLoopTimeMs = 0;
 
     // ========== MECANUM DRIVE (TELEOP) ==========
     private DcMotorEx frontLeft;
@@ -48,12 +37,6 @@ public class Drive {
 
     // Robot starting positions (inches)
 
-    public static final double ROBOT_START_X_RED_INCHES = 95.0;
-    public static final double ROBOT_START_Y_RED_INCHES = 70.0;
-    public static final double ROBOT_START_X_BLUE_INCHES = 50.0;
-    public static final double ROBOT_START_Y_BLUE_INCHES = 70.0;
-    public static final double ROBOT_START_HEADING_RED = 270.0 - 45;
-    public static final double ROBOT_START_HEADING_BLUE = 270.0 + 45;
 
     // Field center position (for position reset)
     public static final double FIELD_CENTER_X_INCHES = 71.7;
@@ -61,10 +44,6 @@ public class Drive {
 
     // Conversion
     public static final double INCHES_TO_MM = 25.4;
-    public static final double ROBOT_START_X_RED = ROBOT_START_X_RED_INCHES * INCHES_TO_MM;
-    public static final double ROBOT_START_Y_RED = ROBOT_START_Y_RED_INCHES * INCHES_TO_MM;
-    public static final double ROBOT_START_X_BLUE = ROBOT_START_X_BLUE_INCHES * INCHES_TO_MM;
-    public static final double ROBOT_START_Y_BLUE = ROBOT_START_Y_BLUE_INCHES * INCHES_TO_MM;
 
     // ========== STATE ==========
     private boolean isRedAlliance = true;
@@ -95,10 +74,6 @@ public class Drive {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
         }
 
-        // Initialize Pedro Pathing Follower using Constants builder
-        follower = Constants.createFollower(hardwareMap);
-        // Starting pose will be set by the OpMode based on alliance selection
-        
         // Initialize drivetrain motors
         frontLeft = hardwareMap.get(DcMotorEx.class, "front_left");
         frontRight = hardwareMap.get(DcMotorEx.class, "front_right");
@@ -129,24 +104,22 @@ public class Drive {
         backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // Initialize Pinpoint Odometry
+        // Note: Do NOT reset position or recalibrate IMU - allows teleop to continue from where auto left off
+        // Match the same constants as Pedro Pathing Constants.java
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-        pinpoint.setOffsets(RobotConstants.getPinpointOffsetX(),
-                RobotConstants.getPinpointOffsetY(), DistanceUnit.MM);
-        pinpoint.setEncoderResolution(34.31, DistanceUnit.MM);
-        pinpoint.setEncoderDirections(RobotConstants.getEncoderDirectionX(),
-                RobotConstants.getEncoderDirectionY());
-        pinpoint.setYawScalar(RobotConstants.getYawScalar());
+        pinpoint.setOffsets(-12.5, -55, DistanceUnit.MM);  // strafePodX, forwardPodY (matches Constants.java)
+        pinpoint.setEncoderResolution(34.311, DistanceUnit.MM);  // matches Constants.java
+        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,
+                GoBildaPinpointDriver.EncoderDirection.REVERSED);  // matches Constants.java
     }
 
     /**
-     * Re-apply pinpoint settings based on current RobotConstants.
+     * Re-apply pinpoint settings (matching Pedro Pathing Constants.java).
      */
     public void applyPinpointSettings() {
-        pinpoint.setOffsets(RobotConstants.getPinpointOffsetX(),
-                RobotConstants.getPinpointOffsetY(), DistanceUnit.MM);
-        pinpoint.setEncoderDirections(RobotConstants.getEncoderDirectionX(),
-                RobotConstants.getEncoderDirectionY());
-        pinpoint.setYawScalar(RobotConstants.getYawScalar());
+        pinpoint.setOffsets(-12.5, -55, DistanceUnit.MM);  // strafePodX, forwardPodY
+        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,
+                GoBildaPinpointDriver.EncoderDirection.REVERSED);
     }
 
     // ========== ALLIANCE ==========
@@ -158,26 +131,6 @@ public class Drive {
     public boolean isRedAlliance() {
         return isRedAlliance;
     }
-
-    public double getRobotStartX() {
-
-//        return isRedAlliance ? ROBOT_START_X_RED : ROBOT_START_X_BLUE;'
-        return PoseStorage.x;
-    }
-
-    public double getRobotStartY() {
-
-//        return isRedAlliance ? ROBOT_START_Y_RED : ROBOT_START_Y_BLUE;
-        return PoseStorage.y;
-    }
-
-
-    public double getRobotStartHeading() {
-
-//        return isRedAlliance ? ROBOT_START_HEADING_RED : ROBOT_START_HEADING_BLUE;
-        return PoseStorage.heading;
-    }
-
 
     // ========== MECANUM DRIVE ==========
 
@@ -250,22 +203,17 @@ public class Drive {
 
     public double getOdometryX() {
         double pinpointY = pinpoint.getPosY(DistanceUnit.MM);
-        return getRobotStartX() + pinpointY;
+        return pinpointY;
     }
 
     public double getOdometryY() {
         double pinpointX = pinpoint.getPosX(DistanceUnit.MM);
-        return getRobotStartY() + pinpointX;
+        return pinpointX;
     }
 
     public double getOdometryHeading() {
         double pinpointHeading = pinpoint.getHeading(AngleUnit.DEGREES);
-        double fieldHeading = pinpointHeading + getRobotStartHeading();
-
-        while (fieldHeading >= 360.0) fieldHeading -= 360.0;
-        while (fieldHeading < 0.0) fieldHeading += 360.0;
-
-        return fieldHeading;
+        return pinpointHeading;
     }
 
     public double getRawIMUHeading() {
@@ -337,11 +285,8 @@ public class Drive {
     }
 
     public void setOdometryPosition(double fieldX, double fieldY, double fieldHeading) {
-        double pinpointX = getRobotStartY() - fieldY;
-        double pinpointY = fieldX - getRobotStartX();
-        double pinpointHeading = fieldHeading - getRobotStartHeading();
 
-        pinpoint.setPosition(new Pose2D(DistanceUnit.MM, pinpointX, pinpointY, AngleUnit.DEGREES, pinpointHeading));
+        pinpoint.setPosition(new Pose2D(DistanceUnit.MM, fieldX, fieldY, AngleUnit.DEGREES, fieldHeading));
     }
 
     public String getPinpointStatus() {
@@ -352,58 +297,6 @@ public class Drive {
         while (angle > 180.0) angle -= 360.0;
         while (angle < -180.0) angle += 360.0;
         return angle;
-    }
-
-    // ========== PEDRO PATHING (AUTONOMOUS) ==========
-
-    public void setStartingPose(Pose2D pose) {
-        this.startingPose = pose;
-        follower.setStartingPose(new Pose(
-                pose.getX(DistanceUnit.INCH),
-                pose.getY(DistanceUnit.INCH),
-                pose.getHeading(AngleUnit.RADIANS)
-        ));
-    }
-
-    public Follower getFollower() {
-        return follower;
-    }
-
-    public void update() {
-        follower.update();
-    }
-
-    public void setMaxPower(double power) {
-        follower.setMaxPower(power);
-    }
-
-    public void followPathChain(PathChain pathChain, boolean holdEnd) {
-        follower.followPath(pathChain, holdEnd);
-    }
-
-    public boolean isBusy() {
-        return follower.isBusy();
-    }
-
-    public Pose2D getCurrentPose() {
-        Pose pose = follower.getPose();
-        return new Pose2D(
-                DistanceUnit.INCH, pose.getX(), pose.getY(),
-                AngleUnit.RADIANS, pose.getHeading()
-        );
-    }
-
-    public void startLoopTimer() {
-        loopTimer.reset();
-    }
-
-    public double endLoopTimer() {
-        lastLoopTimeMs = loopTimer.milliseconds();
-        return lastLoopTimeMs;
-    }
-
-    public double getLoopTimeMs() {
-        return lastLoopTimeMs;
     }
 
     public void clearBulkCache() {

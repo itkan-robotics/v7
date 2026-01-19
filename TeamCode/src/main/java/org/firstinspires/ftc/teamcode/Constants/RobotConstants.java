@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.teleop;
+package org.firstinspires.ftc.teamcode.Constants;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -98,14 +98,14 @@ public class RobotConstants {
      * Get pinpoint X offset in mm (distance from center to X encoder)
      */
     public static double getPinpointOffsetX() {
-        return is21171() ? -45.0 : -45.0;  // TODO: Update 19564 value if different
+        return is21171() ? -55.0 : -55.0;  // TODO: Update 19564 value if different
     }
     
     /**
      * Get pinpoint Y offset in mm (distance from center to Y encoder)
      */
     public static double getPinpointOffsetY() {
-        return is21171() ? 12.0 : 12.0;  // TODO: Update 19564 value if different
+        return is21171() ? -12.0 : -12.0;  // TODO: Update 19564 value if different
     }
     
     // ========== SHOOTER CONSTANTS ==========
