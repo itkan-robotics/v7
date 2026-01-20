@@ -24,6 +24,8 @@ public class Shooter {
     // ========== HARDWARE ==========
     private DcMotorEx shooterMotor;
     private DcMotorEx intakeTransferMotor;  // Single motor for intake and transfer
+    private DcMotorEx turretMotor;
+
     private Servo blockerServo;
     private Servo turretServo;
     private Servo turretServo2;  // Second turret servo (only on some robots)
@@ -76,6 +78,8 @@ public class Shooter {
     public static final double INTAKE_VELOCITY_THRESHOLD = 50.0;
     public static final double INTAKE_STALL_VELOCITY = 10.0;
     public static final double INTAKE_POWER_THRESHOLD = 0.8;
+
+    double MAX_TURRET_TICKS = 1000;
     
     // Intake states
     public enum IntakeState {
@@ -167,6 +171,10 @@ public class Shooter {
         intakeTransferMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         intakeTransferMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
+        turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         // Initialize blocker servo
         blockerServo = hardwareMap.get(Servo.class, "blocker_servo");
 
@@ -479,16 +487,22 @@ public class Shooter {
 
         double deltaX = goalX - robotX;
         double deltaY = goalY - robotY;
-        double fieldAngleToGoal = -Math.toDegrees(Math.atan2(deltaY, deltaX));
+        double fieldAngleToGoal = Math.toDegrees(Math.atan2(deltaY, deltaX));
+        double targetAngle = fieldAngleToGoal - robotHeading;
+        int fullRange = 350;
 
-        double headingSign = RobotConstants.getTurretHeadingSign();
-        double fieldOffset = RobotConstants.getTurretFieldOffset();
-        double turretAngle = fieldAngleToGoal - (headingSign * robotHeading) - fieldOffset;
+        if (targetAngle > 350 || targetAngle < 0) {
 
-        while (turretAngle > 180.0) turretAngle -= 360.0;
-        while (turretAngle < -180.0) turretAngle += 360.0;
+            double distanceTo350 = targetAngle - 350;
+            double distanceTo0 = 350 - targetAngle;
 
-        return turretAngle;
+            if (distanceTo350 < distanceTo0) {
+                targetAngle = 350;
+            } else {
+                targetAngle = 0;
+            }
+        }
+        return (targetAngle * MAX_TURRET_TICKS) / fullRange ;
     }
 
     public void pointTurretAtGoal(boolean isRedAlliance, boolean allowVisualTracking) {
@@ -505,9 +519,8 @@ public class Shooter {
     }
 
     private void pointTurretVisual(boolean isRedAlliance) {
-        updateEstimatedServoPosition();
-
         double tx = getLimelightTx(isRedAlliance);
+
 
         if (closeShotOverride) {
             targetTxOffset = 0.0;
@@ -526,28 +539,24 @@ public class Shooter {
         currentTurretKP = calculateDynamicKP(distanceInches);
 
         double error = targetTxOffset - tx;
-        double adjustment = currentTurretKP * error;
 
-        double newServo = estimatedServoPosition + adjustment;
-        newServo = clampTurretServo(newServo);
-
-        setTurretServos(newServo);
-        targetServoPosition = newServo;
+        double VISUAL_KP = 0.03;  // Tune this
+        double power = Math.max(-1.0, Math.min(1.0, error * VISUAL_KP));
+        turretMotor.setPower(power);
     }
-
     private void pointTurretByPosition(boolean isRedAlliance) {
-        updateEstimatedServoPosition();
 
         double goalX = isRedAlliance ? GOAL_RED_X : GOAL_BLUE_X;
         double goalY = isRedAlliance ? GOAL_RED_Y : GOAL_BLUE_Y;
 
-        double turretAngle = calculateTurretAngleToGoal(goalX, goalY);
-        double servoPosition = turretAngleToServoPosition(turretAngle);
-        servoPosition = clampTurretServo(servoPosition);
+        double turretPower = calculateTurretAngleToGoal(goalX, goalY) - turretMotor.getCurrentPosition();
 
-        setTurretServos(servoPosition);
-        targetServoPosition = servoPosition;
+        double POSITION_KP = 0.002;  // Much smaller because ticks are bigger numbers
+        double power = Math.max(-1.0, Math.min(1.0, turretPower * POSITION_KP));
+        turretMotor.setPower(power);
+
     }
+
 
     private double calculateDynamicKP(double distanceInches) {
         double kpFar = RobotConstants.getTurretKpFar();
