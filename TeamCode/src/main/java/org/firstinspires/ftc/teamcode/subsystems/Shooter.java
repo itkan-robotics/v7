@@ -24,6 +24,8 @@ public class Shooter {
     // ========== HARDWARE ==========
     private DcMotorEx shooterMotor;
     private DcMotorEx intakeTransferMotor;  // Single motor for intake and transfer
+    private DcMotorEx turretMotor;
+
     private Servo blockerServo;
     // TURRET SERVO REMOVED - Now using motor instead
     private Servo climberServo;
@@ -114,19 +116,21 @@ public class Shooter {
     // Indexer constants
     public static final double INDEXER_INDEXED = 0.05;
     public static final double INDEXER_MIDDLE = 0.55;
+    double MAX_TURRET_TICKS = 1000;
+    private double targetTxOffset = 0.0;
+    private double autoTxOffset = 0.0;
+
+
 
     /**
      * Constructor for autonomous (without Drive reference - turret uses manual angles only)
      */
-    public Shooter(HardwareMap hardwareMap) {
-        this(hardwareMap, null);
-    }
+
 
     /**
      * Constructor for teleop (with Drive reference for odometry-based turret tracking)
      */
-    public Shooter(HardwareMap hardwareMap, Drive drive) {
-        this.drive = drive;
+    public Shooter(HardwareMap hardwareMap) {
 
         // Initialize voltage sensor
         voltageSensor = hardwareMap.voltageSensor.iterator().next();
@@ -142,6 +146,11 @@ public class Shooter {
         shooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shooterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
+        turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Initialize intake/transfer motor (single motor)
         intakeTransferMotor = hardwareMap.get(DcMotorEx.class, "transfer_motor");
@@ -274,6 +283,84 @@ public class Shooter {
         shooterMotor.setPower(power);
         lastShooterPower = power;
     }
+    public double calculateAutoTxOffset() {
+        if (drive == null) {
+            return 0.0;  // Can't calculate without drive reference
+        }
+        double fieldX = drive.getPredictedX() / INCHES_TO_MM;
+        double fieldY = drive.getPredictedY() / INCHES_TO_MM;
+
+        double txOffset = 0.0;
+
+        if (fieldY >= 130) {
+            if (fieldX >= 50 && fieldX <= 100) {
+                double t = (fieldX - 64) / (89 - 64);
+                txOffset = 9.4 + t * (8.4 - 9.4);
+            } else if (fieldX < 50) {
+                double t = fieldX / 50.0;
+                txOffset = t * 9.4;
+            } else {
+                double t = (fieldX - 100) / 30.0;
+                t = Math.min(1.0, t);
+                txOffset = 8.4 * (1.0 - t);
+            }
+        } else if (fieldY >= 80) {
+            txOffset = 0.0;
+        } else if (fieldY >= 30) {
+            double t = (80 - fieldY) / (80 - 35);
+            txOffset = -2.0 * t;
+        } else {
+            txOffset = -2.0;
+        }
+
+        autoTxOffset = txOffset;
+        return txOffset;
+    }
+    public double getTurretEncodeerPos(){
+        return turretMotor.getCurrentPosition();
+    }
+
+
+    public void pointTurretAtGoal(boolean isRedAlliance, boolean allowVisualTracking) {
+        int expectedTagId = isRedAlliance ? 24 : 20;
+        int detectedTagId = getDetectedAprilTagId(isRedAlliance);
+        boolean turretUsingVisualTracking;
+        if (allowVisualTracking && detectedTagId == expectedTagId) {
+            turretUsingVisualTracking = true;
+            pointTurretVisual(isRedAlliance);
+        } else {
+            turretUsingVisualTracking = false;
+            pointTurretByPosition(isRedAlliance);
+        }
+    }
+
+    private void pointTurretVisual(boolean isRedAlliance) {
+        double tx = getLimelightTx(isRedAlliance);
+
+        double ta = getAprilTagArea();
+        double distanceInches = 100.0;
+        if (ta > 0.1) {
+            distanceInches = 50.0 / Math.sqrt(ta);
+        }
+
+        double error = targetTxOffset - tx;
+
+        double VISUAL_KP = 0.03;  // Tune this
+        double power = Math.max(-1.0, Math.min(1.0, error * VISUAL_KP));
+        turretMotor.setPower(power);
+    }
+    private void pointTurretByPosition(boolean isRedAlliance) {
+
+        double goalX = isRedAlliance ? GOAL_RED_X : GOAL_BLUE_X;
+        double goalY = isRedAlliance ? GOAL_RED_Y : GOAL_BLUE_Y;
+
+        double turretPower = drive.calculateTurretAngleToGoal(goalX, goalY) - turretMotor.getCurrentPosition();
+
+        double POSITION_KP = 0.002;  // Much smaller because ticks are bigger numbers
+        double power = Math.max(-1.0, Math.min(1.0, turretPower * POSITION_KP));
+        turretMotor.setPower(power);
+
+    }
 
     public void controlShooterManual(double targetTPS, boolean running) {
         controlShooterManual(targetTPS, running, false);
@@ -306,6 +393,7 @@ public class Shooter {
     public double getShooterPower() {
         return lastShooterPower;
     }
+
 
     public void setDefaultTPSOverride(double tps) {
         overrideDefaultTPS = tps;

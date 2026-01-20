@@ -56,7 +56,7 @@ public class MainTeleOp extends LinearOpMode {
 
         // Initialize subsystems
         drive = new Drive(hardwareMap);
-        shooter = new Shooter(hardwareMap, drive);
+        shooter = new Shooter(hardwareMap);
 
         // Reset pinpoint/odometry immediately so it calibrates during selection
        // drive.resetOdometry();
@@ -333,12 +333,15 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addData("Velocity", "%.0f / %.0f TPS", currentTPS, targetTPS);
             telemetry.addData("Latched", shootingLatched ? "YES" : "NO");
             telemetry.addData("Power", "%.1f", shooter.getShooterPower());
+
             telemetry.addData("Ready", shooterReady ? "YES" : "NO");
 
             telemetry.addData("=== TURRET DEBUG ===", "");
             // TURRET SERVO CODE REMOVED - Now using motor instead
             // TODO: Implement turret motor telemetry
             telemetry.addData("Status", "Turret motor control not yet implemented");
+            telemetry.addData("Turret encoder pos", "%.1f", shooter.getTurretEncodeerPos());
+
 
             telemetry.addData("=== LIMELIGHT ===", "");
             if (hasTarget) {

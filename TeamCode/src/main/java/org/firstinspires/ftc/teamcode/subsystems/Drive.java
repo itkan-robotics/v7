@@ -66,6 +66,7 @@ public class Drive {
     private boolean positionOverrideActive = false;
     private double overrideX = 0;
     private double overrideY = 0;
+    double MAX_TURRET_TICKS = 1000;
 
     public Drive(HardwareMap hardwareMap) {
         // Enable bulk reading for all hubs
@@ -130,6 +131,36 @@ public class Drive {
 
     public boolean isRedAlliance() {
         return isRedAlliance;
+    }
+    public double calculateTurretAngleToGoal(double goalX, double goalY) {
+
+        double robotX = getOdometryX();
+        double robotY = getOdometryY();
+        double robotHeading = getOdometryHeading();
+
+        double deltaX = goalX - robotX;
+        double deltaY = goalY - robotY;
+        double fieldAngleToGoal = Math.toDegrees(Math.atan2(deltaY, deltaX));
+        double targetAngle = fieldAngleToGoal - robotHeading;
+        int fullRange = 350;
+
+        // First normalize to 0-360
+        while (targetAngle < 0) targetAngle += 360;
+        while (targetAngle >= 360) targetAngle -= 360;
+
+        // Check if in dead zone (350° to 360°)
+        if (targetAngle > 350) {
+            double distanceTo350 = targetAngle - 350;
+            double distanceTo0 = 360 - targetAngle;
+
+            if (distanceTo350 < distanceTo0) {
+                targetAngle = 350;  // Snap to max
+            } else {
+                targetAngle = 0;    // Snap to min
+            }
+        }
+
+        return (targetAngle * MAX_TURRET_TICKS) / fullRange;
     }
 
     // ========== MECANUM DRIVE ==========
