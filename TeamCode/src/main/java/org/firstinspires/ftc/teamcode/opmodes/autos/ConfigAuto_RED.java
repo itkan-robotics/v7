@@ -10,10 +10,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.teamcode.Constants.RobotConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Limelight;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
@@ -60,7 +60,7 @@ public class ConfigAuto_RED extends LinearOpMode {
     private int detectedTagId = 21;
 
     // Target shooter velocity (will be updated from limelight)
-    private double targetShooterVelocity = Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
+    private double targetShooterVelocity = RobotConstants.DEFAULT_TARGET_SHOOTER_VELOCITY;
     // Starting pose - MUST match the beginning of Path1!
     private final Pose2D startPose = new Pose2D(DistanceUnit.INCH, 111, 135, AngleUnit.RADIANS, Math.toRadians(-90));
     boolean suicide = false;
@@ -341,7 +341,7 @@ public class ConfigAuto_RED extends LinearOpMode {
         if (limelight.hasTarget()) {
             return limelight.getTargetShooterTPS();
         } else {
-            return Shooter.DEFAULT_TARGET_SHOOTER_VELOCITY;
+            return RobotConstants.DEFAULT_TARGET_SHOOTER_VELOCITY;
         }
     }
 
@@ -389,7 +389,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                 shooterRunning = false;
                 follower.followPath(paths.Shoot1ToTape2, true);
                 pathTimer.reset();
-                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                shooter.runIntakeSystem(RobotConstants.INTAKE_POWER);
                 break;
             case IntakeTimerReset:
                 // Wait for intake at tape 2
@@ -412,7 +412,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                 // Shoot2ToLever: Close blocker, turn off shooter, run intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                shooter.runIntakeSystem(RobotConstants.INTAKE_POWER);
                 follower.followPath(paths.Shoot2ToLever, true);
                 pathTimer.reset();
                 break;
@@ -437,7 +437,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                 // Shoot3ToTape1: Go to tape 1 with intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                shooter.runIntakeSystem(RobotConstants.INTAKE_POWER);
                 follower.followPath(paths.Shoot3ToTape1, true);
                 pathTimer.reset();
                 break;
@@ -458,7 +458,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                 // Shoot4toCorner: Go to corner with intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                shooter.runIntakeSystem(Shooter.INTAKE_POWER);
+                shooter.runIntakeSystem(RobotConstants.INTAKE_POWER);
                 follower.followPath(paths.Shoot4toCorner, true);
                 pathTimer.reset();
                 break;
@@ -610,11 +610,11 @@ public class ConfigAuto_RED extends LinearOpMode {
                         limelightTurretAutoAlign();
                         boolean isAligned = limelight.isAlignedForShooting();
                         boolean timedOut = alignTimer.seconds() >= ALIGN_TIMEOUT;
-                        boolean shooterSpeedReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= Shooter.VELOCITY_TOLERANCE;
+                        boolean shooterSpeedReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= RobotConstants.VELOCITY_TOLERANCE;
 
                         if(shooterSpeedReady && (isAligned || timedOut)) {
                             shooter.unblockShooter();
-                            shooter.runIntakeSystem(Shooter.INTAKE_POWER - 0.1);
+                            shooter.runIntakeSystem(RobotConstants.INTAKE_POWER - 0.1);
                             shootTimer.reset();
                             shooting = false;
                         }

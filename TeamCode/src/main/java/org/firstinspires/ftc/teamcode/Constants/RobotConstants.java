@@ -32,7 +32,25 @@ public class RobotConstants {
         return currentRobot == ROBOT_19564;
     }
     
+    // ========== UNIT CONVERSIONS ==========
+    public static final double INCHES_TO_MM = 25.4;
+    public static final double MM_TO_INCHES = 1.0 / 25.4;
+    
+    // ========== GOAL POSITIONS (mm) ==========
+    public static final double GOAL_RED_X = 138.0 * INCHES_TO_MM;
+    public static final double GOAL_RED_Y = 143.5 * INCHES_TO_MM;
+    public static final double GOAL_BLUE_X = 6.0 * INCHES_TO_MM;
+    public static final double GOAL_BLUE_Y = 143.5 * INCHES_TO_MM;
+    
     // ========== DRIVETRAIN CONSTANTS ==========
+    public static final double COUNTS_PER_MOTOR_REV = 537.7;
+    public static final double WHEEL_DIAMETER_MM = 96.0;
+    public static final double COUNTS_PER_MM = COUNTS_PER_MOTOR_REV / (Math.PI * WHEEL_DIAMETER_MM);
+    public static final double DRIVE_HEADING_TOLERANCE = 2.0;
+    
+    // Field positions (inches)
+    public static final double FIELD_CENTER_X_INCHES = 72;
+    public static final double FIELD_CENTER_Y_INCHES = 72;
     
     public static GoBildaPinpointDriver.EncoderDirection getEncoderDirectionX() {
         return is21171() 
@@ -48,29 +66,50 @@ public class RobotConstants {
         return -1.0;  // Same for both robots
     }
     
-    /**
-     * Get the sign multiplier for heading in turret angle calculation.
-     * Now same for both robots since yaw scalar is the same.
-     */
+    // ========== TURRET MOTOR CONSTANTS ==========
+    // Turret motor ticks per full rotation (depends on motor + gearing)
+    public static final double TURRET_TICKS_PER_REV = 373;
+    public static final double TURRET_TICKS_PER_DEGREE = (TURRET_TICKS_PER_REV) / 355.0;
+    
+    // Turret pivot offset from robot center
+    // The turret center of rotation is 3 inches behind robot center (opposite side of intake)
+    // In robot coordinates: positive X = forward (intake direction), so offset is negative
+    public static final double TURRET_PIVOT_OFFSET_INCHES = -3.0;
+    public static final double TURRET_PIVOT_OFFSET_MM = TURRET_PIVOT_OFFSET_INCHES * INCHES_TO_MM;
+    
+    // Turret hardstop deadzone: usable range is 5° to 355° (350° total rotation)
+    // 0 ticks corresponds to 5°, max ticks corresponds to 355°
+    public static final double TURRET_MIN_ANGLE = 5.0;        // Angle at 0 ticks (hardstop)
+    public static final double TURRET_MAX_ANGLE = 355.0;      // Angle at max ticks (hardstop)
+    public static final double TURRET_ANGLE_RANGE = TURRET_MAX_ANGLE - TURRET_MIN_ANGLE;  // 350°
+    
+    // Turret range limits (in ticks)
+    public static final double TURRET_MIN_TICKS = 0;          // Corresponds to 5°
+    public static final double TURRET_MAX_TICKS = 373;  // Corresponds to 355°
+    
+    // Turret PID constants
+    public static final double TURRET_KP = 0.002;
+    public static final double TURRET_KI = 0.0;
+    public static final double TURRET_KD = 0.0;
+    public static final double TURRET_TOLERANCE_DEGREES = 2.0;
+    public static final double TURRET_TOLERANCE_TICKS = TURRET_TOLERANCE_DEGREES * TURRET_TICKS_PER_DEGREE;
+    
+    // Visual tracking PID
+    public static final double TURRET_VISUAL_KP = 0.03;
+    
+    // Legacy turret servo constants (for reference)
     public static double getTurretHeadingSign() {
         return 1.0;  // Same for both robots
     }
     
-    /**
-     * Get the turret field offset in degrees.
-     * Same for both robots now that yaw scalar is unified.
-     */
     public static double getTurretFieldOffset() {
         return 0.0;  // Same for both robots
     }
     
-    // ========== TURRET CONSTANTS ==========
-    
     public static boolean hasDualTurretServos() {
-        return false;  // Both robots have 1 turret servo
+        return false;  // Both robots use motor turret now
     }
     
-    // Turret KP values (same for both robots)
     public static double getTurretKpFar() {
         return 0.0001;
     }
@@ -79,7 +118,6 @@ public class RobotConstants {
         return 0.00015;
     }
     
-    // Turret tolerance values (same for both robots)
     public static double getTurretToleranceClose() {
         return 5.0;
     }
@@ -109,6 +147,13 @@ public class RobotConstants {
     }
     
     // ========== SHOOTER CONSTANTS ==========
+    public static final double SHOOTER_MAX_POWER = 1.0;
+    public static final double SHOOTER_DEFAULT_TPS = 1750.0;
+    public static final double SHOOTER_MIN_TPS = 1250.0;
+    public static final double SHOOTER_MAX_TPS = 2000.0;
+    public static final double SHOOTER_READY_THRESHOLD = 50.0;
+    public static final double DEFAULT_TARGET_SHOOTER_VELOCITY = 1350.0;
+    public static final double VELOCITY_TOLERANCE = 50.0;
     
     public static DcMotorSimple.Direction getShooterDirection() {
         return is21171() 
@@ -153,7 +198,16 @@ public class RobotConstants {
     
     public static double getShooterTps6() { return 1800.0; }  // Same for both
     
-    // ========== INTAKE/BLOCKER CONSTANTS ==========
+    // ========== INTAKE CONSTANTS ==========
+    public static final double INTAKE_POWER = 1.0;
+    public static final double THREE_BALL_POWER_THRESHOLD = 62.0;
+    public static final double TRANSFER_STARTUP_IGNORE_TIME = 500;
+    public static final double INTAKE_CURRENT_THRESHOLD = 2.0;
+    public static final double INTAKE_VELOCITY_THRESHOLD = 50.0;
+    public static final double INTAKE_STALL_VELOCITY = 10.0;
+    public static final double INTAKE_POWER_THRESHOLD = 0.8;
+    
+    // ========== BLOCKER CONSTANTS ==========
     
     public static double getBlockerBlocked() {
         return is21171() ? 0.35 : 0.3;
@@ -164,6 +218,8 @@ public class RobotConstants {
     }
     
     // ========== INDEXER CONSTANTS ==========
+    public static final double INDEXER_INDEXED = 0.05;
+    public static final double INDEXER_MIDDLE = 0.55;
     
     public static double getIndexerIndexed() {
         return is21171() ? 0.45 : 0.05;
@@ -182,5 +238,19 @@ public class RobotConstants {
     public static double getClimberUp() {
         return is21171() ? 0.95 : 0.0;
     }
+    
+    // ========== LED CONSTANTS ==========
+    public static final double LIGHT_OFF = 0.0;
+    public static final double LIGHT_RED = 0.305;
+    public static final double LIGHT_ORANGE = 0.333;
+    public static final double LIGHT_YELLOW = 0.388;
+    public static final double LIGHT_GREEN = 0.5;
+    public static final double LIGHT_BLUE = 0.666;
+    public static final double LIGHT_PURPLE = 0.722;
+    public static final double LIGHT_WHITE = 1.0;
+    
+    // ========== LIMELIGHT CONSTANTS ==========
+    public static final double LIMELIGHT_TOLERANCE = 1.5;
+    public static final double LIMELIGHT_KP = 0.035;
 }
 

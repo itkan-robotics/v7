@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.robotcore.robot.Robot;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
@@ -27,7 +28,6 @@ public class Shooter {
     private DcMotorEx turretMotor;
 
     private Servo blockerServo;
-    // TURRET SERVO REMOVED - Now using motor instead
     private Servo climberServo;
     private ServoImplEx lightServo;
     private VoltageSensor voltageSensor;
@@ -35,40 +35,6 @@ public class Shooter {
 
     // Reference to drive for odometry-based turret pointing
     private Drive drive;
-
-    // ========== SHOOTER CONSTANTS ==========
-    public static final double SHOOTER_MAX_POWER = 1.0;
-    public static final double SHOOTER_DEFAULT_TPS = 1750.0;
-    public static final double SHOOTER_MIN_TPS = 1250.0;
-    public static final double SHOOTER_MAX_TPS = 2000.0;
-    public static final double SHOOTER_READY_THRESHOLD = 50.0;
-    
-    // Backward compatibility constants for autonomous
-    public static final double DEFAULT_TARGET_SHOOTER_VELOCITY = 1350.0;
-    public static final double VELOCITY_TOLERANCE = 50.0;
-    public static final double INTAKE_POWER = 1.0;
-    public static final double LIMELIGHT_TOLERANCE = 1.5;
-    public static final double LIMELIGHT_KP = 0.035;
-
-    // ========== TURRET CONSTANTS ==========
-    // TURRET SERVO CONSTANTS REMOVED - Now using motor instead
-
-    // Goal positions (mm)
-    public static final double INCHES_TO_MM = 25.4;
-    public static final double GOAL_RED_X = 138.0 * INCHES_TO_MM;
-    public static final double GOAL_RED_Y = 143.5 * INCHES_TO_MM;
-    public static final double GOAL_BLUE_X = 6.0 * INCHES_TO_MM;
-    public static final double GOAL_BLUE_Y = 143.5 * INCHES_TO_MM;
-
-    // ========== INTAKE CONSTANTS ==========
-    public static final double THREE_BALL_POWER_THRESHOLD = 62.0;
-    public static final double TRANSFER_STARTUP_IGNORE_TIME = 500;
-    
-    // Intake full detection thresholds
-    public static final double INTAKE_CURRENT_THRESHOLD = 2.0;
-    public static final double INTAKE_VELOCITY_THRESHOLD = 50.0;
-    public static final double INTAKE_STALL_VELOCITY = 10.0;
-    public static final double INTAKE_POWER_THRESHOLD = 0.8;
     
     // Intake states
     public enum IntakeState {
@@ -79,23 +45,10 @@ public class Shooter {
     }
     private IntakeState currentIntakeState = IntakeState.IDLE;
 
-    // ========== LED CONSTANTS ==========
-    public static final double LIGHT_OFF = 0.0;
-    public static final double LIGHT_RED = 0.305;
-    public static final double LIGHT_ORANGE = 0.333;
-    public static final double LIGHT_YELLOW = 0.388;
-    public static final double LIGHT_GREEN = 0.5;
-    public static final double LIGHT_BLUE = 0.666;
-    public static final double LIGHT_PURPLE = 0.722;
-    public static final double LIGHT_WHITE = 1.0;
-
     // ========== STATE ==========
     private double lastShooterPower = 0.0;
     private double overrideDefaultTPS = 0.0;
     private boolean lastBlockerState = true;
-
-    // Turret state
-    // TURRET SERVO STATE REMOVED - Now using motor instead
 
     // Cached limelight data
     private LLResult cachedLimelightResult = null;
@@ -113,10 +66,7 @@ public class Shooter {
     // Indexer servo (for autonomous compatibility)
     private Servo indexingServo;
     
-    // Indexer constants
-    public static final double INDEXER_INDEXED = 0.05;
-    public static final double INDEXER_MIDDLE = 0.55;
-    double MAX_TURRET_TICKS = 1000;
+    // Turret state
     private double targetTxOffset = 0.0;
     private double autoTxOffset = 0.0;
 
@@ -150,7 +100,7 @@ public class Shooter {
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // Initialize intake/transfer motor (single motor)
         intakeTransferMotor = hardwareMap.get(DcMotorEx.class, "transfer_motor");
@@ -202,14 +152,14 @@ public class Shooter {
 
     public double getTargetShooterTPS() {
         if (!cachedHasTarget) {
-            return (overrideDefaultTPS > 0) ? overrideDefaultTPS : SHOOTER_DEFAULT_TPS;
+            return (overrideDefaultTPS > 0) ? overrideDefaultTPS : RobotConstants.SHOOTER_DEFAULT_TPS;
         }
         return getTargetShooterTPS(cachedTy, true);
     }
 
     public double getTargetShooterTPS(double ty, boolean hasTarget) {
         if (!hasTarget) {
-            return (overrideDefaultTPS > 0) ? overrideDefaultTPS : SHOOTER_DEFAULT_TPS;
+            return (overrideDefaultTPS > 0) ? overrideDefaultTPS : RobotConstants.SHOOTER_DEFAULT_TPS;
         }
 
         double targetTPS;
@@ -258,8 +208,8 @@ public class Shooter {
             targetTPS = TPS_6;
         }
 
-        if (targetTPS < SHOOTER_MIN_TPS) targetTPS = SHOOTER_MIN_TPS;
-        if (targetTPS > SHOOTER_MAX_TPS) targetTPS = SHOOTER_MAX_TPS;
+        if (targetTPS < RobotConstants.SHOOTER_MIN_TPS) targetTPS = RobotConstants.SHOOTER_MIN_TPS;
+        if (targetTPS > RobotConstants.SHOOTER_MAX_TPS) targetTPS = RobotConstants.SHOOTER_MAX_TPS;
 
         return targetTPS;
     }
@@ -278,7 +228,7 @@ public class Shooter {
         double targetTPS = getTargetShooterTPS();
         double currentTPS = getShooterTPS();
 
-        double power = (currentTPS < targetTPS) ? SHOOTER_MAX_POWER : 0.0;
+        double power = (currentTPS < targetTPS) ? RobotConstants.SHOOTER_MAX_POWER : 0.0;
 
         shooterMotor.setPower(power);
         lastShooterPower = power;
@@ -287,8 +237,8 @@ public class Shooter {
         if (drive == null) {
             return 0.0;  // Can't calculate without drive reference
         }
-        double fieldX = drive.getPredictedX() / INCHES_TO_MM;
-        double fieldY = drive.getPredictedY() / INCHES_TO_MM;
+        double fieldX = drive.getPredictedX() * RobotConstants.MM_TO_INCHES;
+        double fieldY = drive.getPredictedY() * RobotConstants.MM_TO_INCHES;
 
         double txOffset = 0.0;
 
@@ -316,8 +266,69 @@ public class Shooter {
         autoTxOffset = txOffset;
         return txOffset;
     }
-    public double getTurretEncodeerPos(){
+    
+    // ========== TURRET MOTOR CONTROL ==========
+    
+    /**
+     * Convert a turret angle (in degrees) to motor encoder ticks.
+     * 0 degrees = turret aligned with intake direction
+     * Positive angle = counter-clockwise rotation
+     * 
+     * @param angleDegrees The target angle in degrees
+     * @return The motor position in encoder ticks
+     */
+    /**
+     * Convert turret angle (degrees) to motor ticks.
+     * Accounts for hardstop deadzone: 0 ticks = 5°, max ticks = 355°.
+     * 
+     * @param angleDegrees Turret angle in degrees (-180 to 180 from calculateTurretAngleToGoal)
+     * @return Motor ticks clamped to valid range
+     */
+    public double angleToTurretTicks(double angleDegrees) {
+        // Normalize angle to 0-360 range
+        double normalizedAngle = angleDegrees;
+        while (normalizedAngle < 0) normalizedAngle += 360;
+        while (normalizedAngle >= 360) normalizedAngle -= 360;
+        
+        // Clamp to valid turret range (5° to 355°)
+        if (normalizedAngle < RobotConstants.TURRET_MIN_ANGLE) {
+            normalizedAngle = RobotConstants.TURRET_MIN_ANGLE;
+        } else if (normalizedAngle > RobotConstants.TURRET_MAX_ANGLE) {
+            normalizedAngle = RobotConstants.TURRET_MAX_ANGLE;
+        }
+        
+        // Convert to ticks: 0 ticks = 5°, so subtract the min angle offset
+        double ticks = (normalizedAngle - RobotConstants.TURRET_MIN_ANGLE) * RobotConstants.TURRET_TICKS_PER_DEGREE;
+        
+        return ticks;
+    }
+    
+    /**
+     * Get the current turret motor encoder position.
+     */
+    public double getTurretEncoderPos() {
         return turretMotor.getCurrentPosition();
+    }
+    
+    /**
+     * Set turret motor power directly.
+     */
+    public void setTurretPower(double power) {
+        turretMotor.setPower(power);
+    }
+    
+    /**
+     * Stop the turret motor.
+     */
+    public void stopTurret() {
+        turretMotor.setPower(0);
+    }
+    
+    /**
+     * Set the Drive reference for odometry-based turret tracking.
+     */
+    public void setDriveReference(Drive drive) {
+        this.drive = drive;
     }
 
 
@@ -345,21 +356,27 @@ public class Shooter {
 
         double error = targetTxOffset - tx;
 
-        double VISUAL_KP = 0.03;  // Tune this
-        double power = Math.max(-1.0, Math.min(1.0, error * VISUAL_KP));
+        double power = Math.max(-1.0, Math.min(1.0, error * RobotConstants.TURRET_VISUAL_KP));
         turretMotor.setPower(power);
     }
+    
     private void pointTurretByPosition(boolean isRedAlliance) {
+        if (drive == null) {
+            return;  // Can't point without drive reference
+        }
+        
+        // Get turret angle from Drive (angle relative to intake)
+        double targetAngleDegrees = drive.calculateTurretAngleToGoal(isRedAlliance);
+        
+        // Convert angle to target ticks
+        double targetTicks = angleToTurretTicks(targetAngleDegrees);
+        
+        // Calculate error in ticks
+        double currentTicks = turretMotor.getCurrentPosition();
+        double errorTicks = targetTicks - currentTicks;
 
-        double goalX = isRedAlliance ? GOAL_RED_X : GOAL_BLUE_X;
-        double goalY = isRedAlliance ? GOAL_RED_Y : GOAL_BLUE_Y;
-
-        double turretPower = drive.calculateTurretAngleToGoal(goalX, goalY) - turretMotor.getCurrentPosition();
-
-        double POSITION_KP = 0.002;  // Much smaller because ticks are bigger numbers
-        double power = Math.max(-1.0, Math.min(1.0, turretPower * POSITION_KP));
+        double power = Math.max(-1.0, Math.min(1.0, errorTicks * RobotConstants.TURRET_KP));
         turretMotor.setPower(power);
-
     }
 
     public void controlShooterManual(double targetTPS, boolean running) {
@@ -379,7 +396,7 @@ public class Shooter {
             effectiveTarget += 100;
         }
 
-        double power = (currentTPS < effectiveTarget) ? SHOOTER_MAX_POWER : 0.0;
+        double power = (currentTPS < effectiveTarget) ? RobotConstants.SHOOTER_MAX_POWER : 0.0;
 
         shooterMotor.setPower(power);
         lastShooterPower = power;
@@ -405,7 +422,7 @@ public class Shooter {
 
     public boolean isShooterSpeedReady(double targetTPS) {
         double currentTPS = getShooterTPS();
-        return Math.abs(currentTPS - targetTPS) <= SHOOTER_READY_THRESHOLD;
+        return Math.abs(currentTPS - targetTPS) <= RobotConstants.SHOOTER_READY_THRESHOLD;
     }
     
     // Backward compatibility methods for autonomous
@@ -424,7 +441,7 @@ public class Shooter {
         }
         
         double currentVelocity = getShooterTPS();
-        double power = (currentVelocity < targetVelocity) ? SHOOTER_MAX_POWER : 0.0;
+        double power = (currentVelocity < targetVelocity) ? RobotConstants.SHOOTER_MAX_POWER : 0.0;
         
         shooterMotor.setPower(power);
         lastShooterPower = power;
@@ -449,7 +466,7 @@ public class Shooter {
      */
     public boolean isShooterReady(double targetVelocity, boolean isAligned) {
         double currentVelocity = getShooterTPS();
-        boolean speedReady = Math.abs(currentVelocity - targetVelocity) <= VELOCITY_TOLERANCE;
+        boolean speedReady = Math.abs(currentVelocity - targetVelocity) <= RobotConstants.VELOCITY_TOLERANCE;
         return speedReady && isAligned;
     }
     
@@ -575,14 +592,14 @@ public class Shooter {
         }
 
         long timeSinceStart = System.currentTimeMillis() - transferStartTime;
-        if (timeSinceStart < TRANSFER_STARTUP_IGNORE_TIME) {
+        if (timeSinceStart < RobotConstants.TRANSFER_STARTUP_IGNORE_TIME) {
             return false;
         }
 
         double currentAmps = intakeTransferMotor.getCurrent(CurrentUnit.AMPS);
         double voltage = voltageSensor.getVoltage();
         double power = currentAmps * voltage;
-        return power > THREE_BALL_POWER_THRESHOLD;
+        return power > RobotConstants.THREE_BALL_POWER_THRESHOLD;
     }
 
     public double getTransferCurrent() {
@@ -651,24 +668,24 @@ public class Shooter {
         double targetColor;
 
         if (isShooting && shooterReady && turretOnTarget) {
-            targetColor = LIGHT_WHITE;
+            targetColor = RobotConstants.LIGHT_WHITE;
         } else if (turretOnTarget && shooterReady) {
-            targetColor = LIGHT_BLUE;
+            targetColor = RobotConstants.LIGHT_BLUE;
         } else if (hasThreeBalls) {
-            targetColor = LIGHT_PURPLE;
+            targetColor = RobotConstants.LIGHT_PURPLE;
         } else if (turretOnTarget && shooterRunning) {
-            targetColor = LIGHT_GREEN;
+            targetColor = RobotConstants.LIGHT_GREEN;
         } else if (aprilTagVisible && turretUsingVisualTracking) {
-            targetColor = LIGHT_YELLOW;
+            targetColor = RobotConstants.LIGHT_YELLOW;
         } else {
-            targetColor = LIGHT_RED;
+            targetColor = RobotConstants.LIGHT_RED;
         }
 
         lightServo.setPosition(targetColor);
     }
 
     public void setLightOff() {
-        lightServo.setPosition(LIGHT_OFF);
+        lightServo.setPosition(RobotConstants.LIGHT_OFF);
     }
 
     // ========== STOP ALL ==========

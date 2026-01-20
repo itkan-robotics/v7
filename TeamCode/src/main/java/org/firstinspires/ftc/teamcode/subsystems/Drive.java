@@ -6,11 +6,11 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.teamcode.Constants.RobotConstants;
 
 import java.util.List;
@@ -29,31 +29,22 @@ public class Drive {
     private DcMotorEx backRight;
     private GoBildaPinpointDriver pinpoint;
 
-    // ========== CONSTANTS ==========
-    public static final double COUNTS_PER_MOTOR_REV = 537.7;
-    public static final double WHEEL_DIAMETER_MM = 96.0;
-    public static final double COUNTS_PER_MM = COUNTS_PER_MOTOR_REV / (Math.PI * WHEEL_DIAMETER_MM);
-    public static final double DRIVE_HEADING_TOLERANCE = 2.0;
-
-    // Robot starting positions (inches)
-
-
-    // Field center position (for position reset)
-    public static final double FIELD_CENTER_X_INCHES = 71.7;
-    public static final double FIELD_CENTER_Y_INCHES = 68.0;
-
-    // Conversion
-    public static final double INCHES_TO_MM = 25.4;
-
     // ========== STATE ==========
     private boolean isRedAlliance = true;
 
-    // Velocity tracking for position prediction
-    private double lastOdoX = 0;
-    private double lastOdoY = 0;
-    private long lastVelocityTime = 0;
-    private double velocityX = 0;  // mm/sec
-    private double velocityY = 0;  // mm/sec
+    // Cached odometry data (updated only in updateOdometry)
+    private double cachedX = 0;  // mm
+    private double cachedY = 0;  // mm
+    private double cachedHeading = 0;  // degrees
+    private double cachedVelocityX = 0;  // mm/sec
+    private double cachedVelocityY = 0;  // mm/sec
+    private double cachedHeadingVelocity = 0;  // degrees/sec
+    private double cachedAccelerationX = 0;  // mm/sec^2
+    private double cachedAccelerationY = 0;  // mm/sec^2
+    private double cachedHeadingAcceleration = 0;  // degrees/sec^2
+    private long lastUpdateTime = 0;
+
+    // Position prediction constants
     private static final double STOPPING_TIME_FULL_SPEED = 0.75;
     private static final double STOPPING_TIME_HALF_SPEED = 0.375;
     private static final double FULL_SPEED_VELOCITY = 2500.0;
@@ -66,7 +57,6 @@ public class Drive {
     private boolean positionOverrideActive = false;
     private double overrideX = 0;
     private double overrideY = 0;
-    double MAX_TURRET_TICKS = 1000;
 
     public Drive(HardwareMap hardwareMap) {
         // Enable bulk reading for all hubs
@@ -132,40 +122,95 @@ public class Drive {
     public boolean isRedAlliance() {
         return isRedAlliance;
     }
+
+    /**
+     * Calculate the turret angle needed to point at the goal, relative to the intake direction.
+     * Turret zero position faces the same direction as the intake (robot's front).
+     * Accounts for turret pivot offset from robot center.
+     * 
+     * @param goalX Goal X position in mm (field coordinates)
+     * @param goalY Goal Y position in mm (field coordinates)
+     * @return Turret angle in degrees (0-360 range, will be clamped to 5-355 in turretAngleToTicks)
+     */
     public double calculateTurretAngleToGoal(double goalX, double goalY) {
-
-        double robotX = getOdometryX();
-        double robotY = getOdometryY();
-        double robotHeading = getOdometryHeading();
-
-        double deltaX = goalX - robotX;
-        double deltaY = goalY - robotY;
+        // Calculate turret pivot position in field coordinates
+        // The turret pivot is offset from robot center along the robot's forward axis
+        double headingRad = Math.toRadians(cachedHeading);
+        double turretPivotX = cachedX + RobotConstants.TURRET_PIVOT_OFFSET_MM * Math.cos(headingRad);
+        double turretPivotY = cachedY + RobotConstants.TURRET_PIVOT_OFFSET_MM * Math.sin(headingRad);
+        
+        // Calculate delta from turret pivot to goal
+        double deltaX = goalX - turretPivotX;
+        double deltaY = goalY - turretPivotY;
+        
+        // Field angle from turret pivot to goal (0° = positive X axis, increases counter-clockwise)
         double fieldAngleToGoal = Math.toDegrees(Math.atan2(deltaY, deltaX));
-        double targetAngle = fieldAngleToGoal - robotHeading;
-        int fullRange = 350;
-
-        // First normalize to 0-360
-        while (targetAngle < 0) targetAngle += 360;
-        while (targetAngle >= 360) targetAngle -= 360;
-
-        // Check if in dead zone (350° to 360°)
-        if (targetAngle > 350) {
-            double distanceTo350 = targetAngle - 350;
-            double distanceTo0 = 360 - targetAngle;
-
-            if (distanceTo350 < distanceTo0) {
-                targetAngle = 350;  // Snap to max
-            } else {
-                targetAngle = 0;    // Snap to min
-            }
-        }
-
-        return (targetAngle * MAX_TURRET_TICKS) / fullRange;
+        
+        // Turret angle = angle to goal relative to robot's front (intake direction)
+        // Add 180° to correct for coordinate system orientation
+        double turretAngle = 180 - fieldAngleToGoal - cachedHeading;
+        
+        // Normalize to 0-360 range
+        while (turretAngle < 0) turretAngle += 360;
+        while (turretAngle >= 360) turretAngle -= 360;
+        
+        return turretAngle;
+    }
+    
+    /**
+     * Calculate the turret angle to goal for the current alliance.
+     * Uses cached odometry position.
+     * 
+     * @param isRedAlliance True if targeting red goal, false for blue
+     * @return Turret angle in degrees relative to intake
+     */
+    public double calculateTurretAngleToGoal(boolean isRedAlliance) {
+        double goalX = isRedAlliance ? RobotConstants.GOAL_RED_X : RobotConstants.GOAL_BLUE_X;
+        double goalY = isRedAlliance ? RobotConstants.GOAL_RED_Y : RobotConstants.GOAL_BLUE_Y;
+        return calculateTurretAngleToGoal(goalX, goalY);
+    }
+    
+    /**
+     * Get the current cached X position in mm.
+     */
+    public double getCachedX() {
+        return cachedX;
+    }
+    
+    /**
+     * Get the current cached Y position in mm.
+     */
+    public double getCachedY() {
+        return cachedY;
+    }
+    
+    /**
+     * Get the current cached heading in degrees.
+     */
+    public double getCachedHeading() {
+        return cachedHeading;
     }
 
     // ========== MECANUM DRIVE ==========
 
     public void mecanumDrive(double drive, double strafe, double turn, double speedMultiplier) {
+        // Normal driving
+        double d = -drive;
+        double s = -strafe;
+        double t = turn;
+
+        double frontLeftPower = (d + s + t) * speedMultiplier;
+        double frontRightPower = (d - s - t) * speedMultiplier;
+        double backLeftPower = (d - s + t) * speedMultiplier;
+        double backRightPower = (d + s - t) * speedMultiplier;
+
+        frontLeft.setPower(frontLeftPower);
+        frontRight.setPower(frontRightPower);
+        backLeft.setPower(backLeftPower);
+        backRight.setPower(backRightPower);
+    }
+
+    public void mecanumDriveWithBraking(double drive, double strafe, double turn, double speedMultiplier) {
         double inputMagnitude = Math.max(Math.abs(drive), Math.max(Math.abs(strafe), Math.abs(turn)));
 
         // Active braking when input is below threshold
@@ -212,51 +257,75 @@ public class Drive {
 
     // ========== ODOMETRY ==========
 
+    /**
+     * Update odometry from Pinpoint hardware. This is the ONLY function that should
+     * call Pinpoint hardware methods. All other functions use cached values.
+     */
     public void updateOdometry() {
+        // Update Pinpoint hardware (single I2C read)
         pinpoint.update();
 
-        long currentTime = System.currentTimeMillis();
-        double currentX = getOdometryX();
-        double currentY = getOdometryY();
+        // Cache position data
+        cachedX = pinpoint.getPosY(DistanceUnit.MM);
+        cachedY = pinpoint.getPosX(DistanceUnit.MM);
+        cachedHeading = pinpoint.getHeading(AngleUnit.DEGREES);
 
-        if (lastVelocityTime > 0) {
-            double deltaTime = (currentTime - lastVelocityTime) / 1000.0;
+        // Read new velocity from Pinpoint
+        double newVelocityX = pinpoint.getVelX(DistanceUnit.MM);
+        double newVelocityY = pinpoint.getVelY(DistanceUnit.MM);
+        double newHeadingVelocity = pinpoint.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES);
+
+        // Calculate acceleration from velocity changes (before updating cached velocity)
+        long currentTime = System.currentTimeMillis();
+        if (lastUpdateTime > 0) {
+            double deltaTime = (currentTime - lastUpdateTime) / 1000.0;
             if (deltaTime > 0.005) {
-                velocityX = (currentX - lastOdoX) / deltaTime;
-                velocityY = (currentY - lastOdoY) / deltaTime;
+                cachedAccelerationX = (newVelocityX - cachedVelocityX) / deltaTime;
+                cachedAccelerationY = (newVelocityY - cachedVelocityY) / deltaTime;
+                cachedHeadingAcceleration = (newHeadingVelocity - cachedHeadingVelocity) / deltaTime;
             }
         }
 
-        lastOdoX = currentX;
-        lastOdoY = currentY;
-        lastVelocityTime = currentTime;
+        // Update cached velocity
+        cachedVelocityX = newVelocityX;
+        cachedVelocityY = newVelocityY;
+        cachedHeadingVelocity = newHeadingVelocity;
+        lastUpdateTime = currentTime;
     }
 
+    /**
+     * Get cached X position (mm). Returns cached value, does not call Pinpoint hardware.
+     */
     public double getOdometryX() {
-        double pinpointY = pinpoint.getPosY(DistanceUnit.MM);
-        return pinpointY;
+        return cachedX;
     }
 
+    /**
+     * Get cached Y position (mm). Returns cached value, does not call Pinpoint hardware.
+     */
     public double getOdometryY() {
-        double pinpointX = pinpoint.getPosX(DistanceUnit.MM);
-        return pinpointX;
+        return cachedY;
     }
 
+    /**
+     * Get cached heading (degrees). Returns cached value, does not call Pinpoint hardware.
+     */
     public double getOdometryHeading() {
-        double pinpointHeading = pinpoint.getHeading(AngleUnit.DEGREES);
-        return pinpointHeading;
-    }
-
-    public double getRawIMUHeading() {
-        return pinpoint.getHeading(AngleUnit.DEGREES);
+        return cachedHeading;
     }
 
     // ========== POSITION PREDICTION ==========
 
+    /**
+     * Get cached velocity magnitude (mm/sec). Uses cached velocity values.
+     */
     public double getVelocityMagnitude() {
-        return Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+        return Math.sqrt(cachedVelocityX * cachedVelocityX + cachedVelocityY * cachedVelocityY);
     }
 
+    /**
+     * Calculate stopping time based on current velocity. Uses cached velocity values.
+     */
     public double getStoppingTime() {
         double speed = getVelocityMagnitude();
         if (speed < 100) return 0;
@@ -265,30 +334,36 @@ public class Drive {
         return STOPPING_TIME_HALF_SPEED + speedRatio * (STOPPING_TIME_FULL_SPEED - STOPPING_TIME_HALF_SPEED);
     }
 
+    /**
+     * Get predicted X position. Uses cached position and velocity values.
+     */
     public double getPredictedX() {
         if (positionOverrideActive) {
             return overrideX;
         }
         double stoppingTime = getStoppingTime();
-        double predictedDistance = velocityX * stoppingTime / 2.0;
-        return getOdometryX() + predictedDistance;
+        double predictedDistance = cachedVelocityX * stoppingTime / 2.0;
+        return cachedX + predictedDistance;
     }
 
+    /**
+     * Get predicted Y position. Uses cached position and velocity values.
+     */
     public double getPredictedY() {
         if (positionOverrideActive) {
             return overrideY;
         }
         double stoppingTime = getStoppingTime();
-        double predictedDistance = velocityY * stoppingTime / 2.0;
-        return getOdometryY() + predictedDistance;
+        double predictedDistance = cachedVelocityY * stoppingTime / 2.0;
+        return cachedY + predictedDistance;
     }
 
     // ========== POSITION OVERRIDE ==========
 
     public void setPositionOverride(double xInches, double yInches) {
         positionOverrideActive = true;
-        overrideX = xInches * INCHES_TO_MM;
-        overrideY = yInches * INCHES_TO_MM;
+        overrideX = xInches * RobotConstants.INCHES_TO_MM;
+        overrideY = yInches * RobotConstants.INCHES_TO_MM;
     }
 
     public void clearPositionOverride() {
@@ -299,25 +374,94 @@ public class Drive {
         return positionOverrideActive;
     }
 
+    /**
+     * Get cached X velocity (mm/sec). Returns cached value from Pinpoint.
+     */
     public double getVelocityX() {
-        return velocityX;
+        return cachedVelocityX;
     }
 
+    /**
+     * Get cached Y velocity (mm/sec). Returns cached value from Pinpoint.
+     */
     public double getVelocityY() {
-        return velocityY;
+        return cachedVelocityY;
     }
 
+    /**
+     * Get cached heading velocity (degrees/sec). Returns cached value from Pinpoint.
+     */
+    public double getHeadingVelocity() {
+        return cachedHeadingVelocity;
+    }
+
+    /**
+     * Get cached X acceleration (mm/sec^2). Calculated from velocity changes.
+     */
+    public double getAccelerationX() {
+        return cachedAccelerationX;
+    }
+
+    /**
+     * Get cached Y acceleration (mm/sec^2). Calculated from velocity changes.
+     */
+    public double getAccelerationY() {
+        return cachedAccelerationY;
+    }
+
+    /**
+     * Get cached heading acceleration (degrees/sec^2). Calculated from velocity changes.
+     */
+    public double getHeadingAcceleration() {
+        return cachedHeadingAcceleration;
+    }
+
+    /**
+     * Get cached acceleration magnitude (mm/sec^2).
+     */
+    public double getAccelerationMagnitude() {
+        return Math.sqrt(cachedAccelerationX * cachedAccelerationX + cachedAccelerationY * cachedAccelerationY);
+    }
+
+    /**
+     * Reset odometry position and IMU. Resets cached values to zero.
+     */
     public void resetOdometry() {
         pinpoint.resetPosAndIMU();
+        resetCachedValues();
+    }
+    
+    /**
+     * Reset all cached odometry values to zero.
+     */
+    private void resetCachedValues() {
+        cachedX = 0;
+        cachedY = 0;
+        cachedHeading = 0;
+        cachedVelocityX = 0;
+        cachedVelocityY = 0;
+        cachedHeadingVelocity = 0;
+        cachedAccelerationX = 0;
+        cachedAccelerationY = 0;
+        cachedHeadingAcceleration = 0;
+        lastUpdateTime = System.currentTimeMillis();
     }
 
     public void recalibrateIMU() {
         pinpoint.recalibrateIMU();
     }
 
+    /**
+     * Set odometry position. Updates Pinpoint hardware and resets cached values.
+     */
     public void setOdometryPosition(double fieldX, double fieldY, double fieldHeading) {
-
         pinpoint.setPosition(new Pose2D(DistanceUnit.MM, fieldX, fieldY, AngleUnit.DEGREES, fieldHeading));
+        
+        // Reset velocity and acceleration, then set position
+        resetCachedValues();
+        cachedX = fieldX;
+        cachedY = fieldY;
+        cachedHeading = fieldHeading;
     }
 
     public String getPinpointStatus() {

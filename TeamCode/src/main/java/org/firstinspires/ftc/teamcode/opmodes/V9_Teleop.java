@@ -8,8 +8,8 @@ import org.firstinspires.ftc.teamcode.Constants.RobotConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
-@TeleOp(name="MainTeleop1", group="Linear Opmode")
-public class MainTeleOp extends LinearOpMode {
+@TeleOp(name="V9 TeleOp", group="Linear Opmode")
+public class V9_Teleop extends LinearOpMode {
 
     // Subsystems
     private Drive drive;
@@ -59,7 +59,7 @@ public class MainTeleOp extends LinearOpMode {
         shooter = new Shooter(hardwareMap);
 
         // Reset pinpoint/odometry immediately so it calibrates during selection
-       // drive.resetOdometry();
+        // drive.resetOdometry();
 
         // ==================== ROBOT & ALLIANCE SELECT ====================
         while (!opModeIsActive() && !isStopRequested()) {
@@ -89,7 +89,7 @@ public class MainTeleOp extends LinearOpMode {
             } else if (gamepad1.x) {
                 isRedAlliance = false;
             }
-            }
+        }
 
         // Apply the selected robot's constants
         RobotConstants.setRobot(selectedRobot);
@@ -117,15 +117,6 @@ public class MainTeleOp extends LinearOpMode {
             // Update odometry
             drive.updateOdometry();
 
-            // ==================== UPDATE LIMELIGHT DATA (once per loop) ====================
-            shooter.updateLimelightData(isRedAlliance);
-
-            // Get cached limelight values
-            double tx = shooter.getLimelightTx(isRedAlliance);
-            double ty = shooter.getLimelightTy();
-            double ta = shooter.getAprilTagArea();
-            int detectedTagId = shooter.getDetectedAprilTagId(isRedAlliance);
-            boolean hasTarget = shooter.hasLimelightTarget();
 
             // ==================== MECANUM DRIVETRAIN ====================
             double driveInput = -gamepad1.left_stick_y;
@@ -139,6 +130,17 @@ public class MainTeleOp extends LinearOpMode {
             // ==================== TURRET CONTROL ====================
             // TURRET SERVO CODE REMOVED - Now using motor instead
             // TODO: Implement turret motor control
+
+            // ==================== UPDATE LIMELIGHT DATA (once per loop) ====================
+            shooter.updateLimelightData(isRedAlliance);
+
+            // Get cached limelight values
+            double tx = shooter.getLimelightTx(isRedAlliance);
+            double ty = shooter.getLimelightTy();
+            double ta = shooter.getAprilTagArea();
+            int detectedTagId = shooter.getDetectedAprilTagId(isRedAlliance);
+            boolean hasTarget = shooter.hasLimelightTarget();
+
 
             // ==================== SHOOTER CONTROL ====================
             boolean dpadUp = gamepad1.dpad_up;
@@ -290,14 +292,14 @@ public class MainTeleOp extends LinearOpMode {
             boolean hasThreeBalls = shooter.hasThreeBalls();
 
             shooter.updateLightServo(
-                SHOOTING,
-                shooterReady,
-                feeding,
-                feeding && SHOOTING && shooterReady,
-                detectedTagId > 0,
-                turretOnTarget, // TURRET SERVO CODE REMOVED - Now using motor instead
-                turretVisual, // TURRET SERVO CODE REMOVED - Now using motor instead
-                hasThreeBalls
+                    SHOOTING,
+                    shooterReady,
+                    feeding,
+                    feeding && SHOOTING && shooterReady,
+                    detectedTagId > 0,
+                    turretOnTarget, // TURRET SERVO CODE REMOVED - Now using motor instead
+                    turretVisual, // TURRET SERVO CODE REMOVED - Now using motor instead
+                    hasThreeBalls
             );
 
             // ==================== CLIMBER CONTROL ====================
@@ -320,7 +322,7 @@ public class MainTeleOp extends LinearOpMode {
                 drive.setOdometryPosition(fieldCenterX, fieldCenterY, 270.0);
             }
             lastLeftStickButton = leftStickButton;
-            
+
 
             // ==================== TELEMETRY ====================
             telemetry.addData("=== STATUS ===", "");
@@ -333,15 +335,12 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addData("Velocity", "%.0f / %.0f TPS", currentTPS, targetTPS);
             telemetry.addData("Latched", shootingLatched ? "YES" : "NO");
             telemetry.addData("Power", "%.1f", shooter.getShooterPower());
-
             telemetry.addData("Ready", shooterReady ? "YES" : "NO");
 
             telemetry.addData("=== TURRET DEBUG ===", "");
             // TURRET SERVO CODE REMOVED - Now using motor instead
             // TODO: Implement turret motor telemetry
             telemetry.addData("Status", "Turret motor control not yet implemented");
-            telemetry.addData("Turret encoder pos", "%.1f", shooter.getTurretEncoderPos());
-
 
             telemetry.addData("=== LIMELIGHT ===", "");
             if (hasTarget) {
@@ -350,15 +349,15 @@ public class MainTeleOp extends LinearOpMode {
                 telemetry.addData("ty", "%.2f°", ty);
                 telemetry.addData("Area (ta)", "%.3f%%", ta);
                 telemetry.addData("Distance", "%.1f in",
-                    shooter.getAprilTagDistance(isRedAlliance) / 25.4);
+                        shooter.getAprilTagDistance(isRedAlliance) / 25.4);
             } else {
                 telemetry.addData("Target", "NONE");
             }
 
             telemetry.addData("=== ODOMETRY ===", "");
             telemetry.addData("Position", "X:%.1f Y:%.1f in",
-                drive.getOdometryX() / 25.4,
-                drive.getOdometryY() / 25.4);
+                    drive.getOdometryX() / 25.4,
+                    drive.getOdometryY() / 25.4);
             telemetry.addData("Heading", "%.1f°", drive.getOdometryHeading());
 
             telemetry.update();
