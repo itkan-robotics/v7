@@ -101,7 +101,7 @@ public class Drive {
         pinpoint.setOffsets(-12.5, -55, DistanceUnit.MM);  // strafePodX, forwardPodY (matches Constants.java)
         pinpoint.setEncoderResolution(34.311, DistanceUnit.MM);  // matches Constants.java
         pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,
-                GoBildaPinpointDriver.EncoderDirection.FORWARD);  // matches Constants.java
+                GoBildaPinpointDriver.EncoderDirection.REVERSED);  // matches Constants.java
     }
 
     /**
@@ -126,41 +126,33 @@ public class Drive {
     /**
      * Calculate the turret angle needed to point at the goal, relative to the intake direction.
      * Turret zero position faces the same direction as the intake (robot's front).
-     * Accounts for turret pivot offset from robot center.
-     * 
+     *
      * @param goalX Goal X position in mm (field coordinates)
      * @param goalY Goal Y position in mm (field coordinates)
      * @return Turret angle in degrees (0-360 range, will be clamped to 5-355 in turretAngleToTicks)
      */
     public double calculateTurretAngleToGoal(double goalX, double goalY) {
-        // Calculate turret pivot position in field coordinates
-        // The turret pivot is offset from robot center along the robot's forward axis
-        double headingRad = Math.toRadians(cachedHeading);
-        double turretPivotX = cachedX + RobotConstants.TURRET_PIVOT_OFFSET_MM * Math.cos(headingRad);
-        double turretPivotY = cachedY + RobotConstants.TURRET_PIVOT_OFFSET_MM * Math.sin(headingRad);
-        
-        // Calculate delta from turret pivot to goal
-        double deltaX = goalX - turretPivotX;
-        double deltaY = goalY - turretPivotY;
-        
-        // Field angle from turret pivot to goal (0° = positive X axis, increases counter-clockwise)
+        // Calculate delta from robot center to goal
+        double deltaX = goalX - cachedX - 2.5; //offset for turret not in center
+        double deltaY = goalY - cachedY;
+
+        // Field angle from robot to goal (0° = positive X axis, increases counter-clockwise)
         double fieldAngleToGoal = Math.toDegrees(Math.atan2(deltaY, deltaX));
-        
+
         // Turret angle = angle to goal relative to robot's front (intake direction)
-        // Add 180° to correct for coordinate system orientation
-        double turretAngle = 180 - fieldAngleToGoal - cachedHeading;
-        
+        double turretAngle = 180 -(fieldAngleToGoal - (cachedHeading)); // add 90 to convert robot angle to turret angle
+
         // Normalize to 0-360 range
         while (turretAngle < 0) turretAngle += 360;
         while (turretAngle >= 360) turretAngle -= 360;
-        
+
         return turretAngle;
     }
-    
+
     /**
      * Calculate the turret angle to goal for the current alliance.
      * Uses cached odometry position.
-     * 
+     *
      * @param isRedAlliance True if targeting red goal, false for blue
      * @return Turret angle in degrees relative to intake
      */
@@ -169,12 +161,12 @@ public class Drive {
         double goalY = isRedAlliance ? RobotConstants.GOAL_RED_Y : RobotConstants.GOAL_BLUE_Y;
         return calculateTurretAngleToGoal(goalX, goalY);
     }
-    
+
     /**
      * Get the current cached X position in mm.
      */
     public double getCachedX() {
-        return cachedX; // #MentorBuilt
+        return cachedX;
     }
     
     /**

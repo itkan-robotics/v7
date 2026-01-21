@@ -37,9 +37,9 @@ public class RobotConstants {
     public static final double MM_TO_INCHES = 1.0 / 25.4;
     
     // ========== GOAL POSITIONS (mm) ==========
-    public static final double GOAL_RED_X = 6.0 * INCHES_TO_MM;
+    public static final double GOAL_RED_X = 138.0 * INCHES_TO_MM;
     public static final double GOAL_RED_Y = 143.5 * INCHES_TO_MM;
-    public static final double GOAL_BLUE_X = 138.0 * INCHES_TO_MM;
+    public static final double GOAL_BLUE_X = 6.0 * INCHES_TO_MM;
     public static final double GOAL_BLUE_Y = 143.5 * INCHES_TO_MM;
     
     // ========== DRIVETRAIN CONSTANTS ==========
@@ -70,12 +70,6 @@ public class RobotConstants {
     // Turret motor ticks per full rotation (depends on motor + gearing)
     public static final double TURRET_TICKS_PER_REV = 373;
     public static final double TURRET_TICKS_PER_DEGREE = (TURRET_TICKS_PER_REV) / 355.0;
-    
-    // Turret pivot offset from robot center
-    // The turret center of rotation is 3 inches behind robot center (opposite side of intake)
-    // In robot coordinates: positive X = forward (intake direction), so offset is negative
-    public static final double TURRET_PIVOT_OFFSET_INCHES = -3.0;
-    public static final double TURRET_PIVOT_OFFSET_MM = TURRET_PIVOT_OFFSET_INCHES * INCHES_TO_MM;
     
     // Turret hardstop deadzone: usable range is 5° to 355° (350° total rotation)
     // 0 ticks corresponds to 5°, max ticks corresponds to 355°

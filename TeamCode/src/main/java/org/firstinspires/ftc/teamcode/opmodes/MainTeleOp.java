@@ -190,6 +190,8 @@ public class MainTeleOp extends LinearOpMode {
                 shooter.pointTurretAtGoal(isRedAlliance, false, drive.calculateTurretAngleToGoal(goalX, goalY));
             }
 
+            telemetry.addData("TARGET ANGLE::   :::::", drive.calculateTurretAngleToGoal(goalX, goalY));
+
             double currentTPS = shooter.getShooterTPS();
             double targetTPS;
             if (manualRPMMode) {
