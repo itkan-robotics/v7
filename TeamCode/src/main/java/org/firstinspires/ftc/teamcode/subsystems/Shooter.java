@@ -34,8 +34,7 @@ public class Shooter {
     private Limelight3A limelight;
 
     // Reference to drive for odometry-based turret pointing
-    private Drive drive;
-    
+
     // Intake states
     public enum IntakeState {
         IDLE,
@@ -97,9 +96,11 @@ public class Shooter {
         shooterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
-        turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        // TURRET MOTOR COMMENTED OUT - Controlled directly in TurretMotorTuning to avoid double hardware init
+         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
+         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+         turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // Initialize intake/transfer motor (single motor)
@@ -233,39 +234,6 @@ public class Shooter {
         shooterMotor.setPower(power);
         lastShooterPower = power;
     }
-    public double calculateAutoTxOffset() {
-        if (drive == null) {
-            return 0.0;  // Can't calculate without drive reference
-        }
-        double fieldX = drive.getPredictedX() * RobotConstants.MM_TO_INCHES;
-        double fieldY = drive.getPredictedY() * RobotConstants.MM_TO_INCHES;
-
-        double txOffset = 0.0;
-
-        if (fieldY >= 130) {
-            if (fieldX >= 50 && fieldX <= 100) {
-                double t = (fieldX - 64) / (89 - 64);
-                txOffset = 9.4 + t * (8.4 - 9.4);
-            } else if (fieldX < 50) {
-                double t = fieldX / 50.0;
-                txOffset = t * 9.4;
-            } else {
-                double t = (fieldX - 100) / 30.0;
-                t = Math.min(1.0, t);
-                txOffset = 8.4 * (1.0 - t);
-            }
-        } else if (fieldY >= 80) {
-            txOffset = 0.0;
-        } else if (fieldY >= 30) {
-            double t = (80 - fieldY) / (80 - 35);
-            txOffset = -2.0 * t;
-        } else {
-            txOffset = -2.0;
-        }
-
-        autoTxOffset = txOffset;
-        return txOffset;
-    }
     
     // ========== TURRET MOTOR CONTROL ==========
     
@@ -305,34 +273,36 @@ public class Shooter {
     
     /**
      * Get the current turret motor encoder position.
+     * COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
      */
     public double getTurretEncoderPos() {
-        return turretMotor.getCurrentPosition();
+         return turretMotor.getCurrentPosition();
     }
     
     /**
      * Set turret motor power directly.
+     * COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
      */
     public void setTurretPower(double power) {
-        turretMotor.setPower(power);
+        // turretMotor.setPower(power);
+        // Placeholder - turret controlled in TurretMotorTuning
     }
     
     /**
      * Stop the turret motor.
+     * COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
      */
     public void stopTurret() {
-        turretMotor.setPower(0);
+        // turretMotor.setPower(0);
+        // Placeholder - turret controlled in TurretMotorTuning
     }
     
     /**
      * Set the Drive reference for odometry-based turret tracking.
      */
-    public void setDriveReference(Drive drive) {
-        this.drive = drive;
-    }
 
 
-    public void pointTurretAtGoal(boolean isRedAlliance, boolean allowVisualTracking) {
+    public void pointTurretAtGoal(boolean isRedAlliance, boolean allowVisualTracking, double dih) {
         int expectedTagId = isRedAlliance ? 24 : 20;
         int detectedTagId = getDetectedAprilTagId(isRedAlliance);
         boolean turretUsingVisualTracking;
@@ -341,42 +311,37 @@ public class Shooter {
             pointTurretVisual(isRedAlliance);
         } else {
             turretUsingVisualTracking = false;
-            pointTurretByPosition(isRedAlliance);
+            pointTurretByPosition(isRedAlliance, dih);
         }
     }
 
-    private void pointTurretVisual(boolean isRedAlliance) {
-        double tx = getLimelightTx(isRedAlliance);
-
-        double ta = getAprilTagArea();
-        double distanceInches = 100.0;
-        if (ta > 0.1) {
-            distanceInches = 50.0 / Math.sqrt(ta);
-        }
-
-        double error = targetTxOffset - tx;
-
-        double power = Math.max(-1.0, Math.min(1.0, error * RobotConstants.TURRET_VISUAL_KP));
-        turretMotor.setPower(power);
+    // COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
+    public void pointTurretVisual(boolean isRedAlliance) {
+         double tx = getLimelightTx(isRedAlliance);
+         double ta = getAprilTagArea();
+         double distanceInches = 100.0;
+         if (ta > 0.1) {
+             distanceInches = 50.0 / Math.sqrt(ta);
+         }
+         double error = targetTxOffset - tx;
+         double power = Math.max(-1.0, Math.min(1.0, error * RobotConstants.TURRET_VISUAL_KP));
+         turretMotor.setPower(-power);
     }
-    
-    private void pointTurretByPosition(boolean isRedAlliance) {
-        if (drive == null) {
-            return;  // Can't point without drive reference
-        }
-        
-        // Get turret angle from Drive (angle relative to intake)
-        double targetAngleDegrees = drive.calculateTurretAngleToGoal(isRedAlliance);
-        
-        // Convert angle to target ticks
-        double targetTicks = angleToTurretTicks(targetAngleDegrees);
-        
-        // Calculate error in ticks
-        double currentTicks = turretMotor.getCurrentPosition();
-        double errorTicks = targetTicks - currentTicks;
 
-        double power = Math.max(-1.0, Math.min(1.0, errorTicks * RobotConstants.TURRET_KP));
-        turretMotor.setPower(power);
+
+
+    // COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
+    public void pointTurretByPosition(boolean isRedAlliance, double targetAngleDegrees) {
+        // // Get turret angle from Drive (angle relative to intake)
+        // // Convert angle to target ticks
+         double targetTicks = angleToTurretTicks(targetAngleDegrees);
+
+         // Calculate error in ticks
+         double currentTicks = turretMotor.getCurrentPosition();
+         double errorTicks = targetTicks - currentTicks;
+
+         double power = Math.max(-1.0, Math.min(1.0, errorTicks * RobotConstants.TURRET_KP));
+         turretMotor.setPower(power);
     }
 
     public void controlShooterManual(double targetTPS, boolean running) {

@@ -3,40 +3,44 @@ package org.firstinspires.ftc.teamcode.opmodes;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.Constants.RobotConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
 /**
- * Turret Motor Tuning OpMode
+ * Full TeleOp with Turret Motor Tuning
  * 
- * Stripped down opmode for tuning turret motor PID on target ticks.
- * 
- * Features:
- * - Mecanum drive using Drive subsystem
- * - Turret PID controller targeting specified ticks
- * - Telemetry: odometry position, turret angle, target ticks, error
+ * Complete teleop that can:
+ * - Drive around (mecanum)
+ * - Intake and outtake
+ * - Shoot with auto TPS or manual TPS
+ * - Turret motor always locked onto goal via odometry with tunable PID
  */
 @Configurable
+@Disabled
 @TeleOp(name = "Turret Motor Tuning", group = "Tuning")
 public class TurretMotorTuning extends LinearOpMode {
 
     // PID Coefficients - Configurable via Panels
-    public static double kP = 0.085;
-
+    public static double kP = 0.025;
     public static double kI = 0.0;
-
     public static double kD = 0.0;
-
     public static double maxPower = 1.0;
+    
+    // Turret on-target threshold (in ticks)
+    public static double TURRET_ON_TARGET_THRESHOLD = 50.0;
     
     // Hardware
     private Drive drive;
+    private Shooter shooter;
     private DcMotorEx turretMotor;
     private TelemetryManager panelsTelemetry;
     
@@ -45,18 +49,55 @@ public class TurretMotorTuning extends LinearOpMode {
     private double lastError = 0.0;
     private double lastTime = 0.0;
     
+    // Robot selection (21171 or 19564)
+    private int selectedRobot = RobotConstants.ROBOT_21171;
+    
     // Alliance for goal tracking
     private boolean isRedAlliance = true;
+    
+    // Shooting state
+    private boolean SHOOTING = false;
+    private boolean shootingLatched = false;
+    
+    // Manual RPM mode
+    private boolean manualRPMMode = false;
+    private double manualTargetTPS = 1350.0;
+    private static final double TPS_INCREMENT = 50.0;
+    
+    // Climber toggle
+    private boolean climberUp = false;
+    private boolean lastBackButton = false;
+    
+    // Manual TPS tuning
+    private boolean lastDpadUp = false;
+    private boolean lastDpadDown = false;
+    
+    // Odometry reset
+    private boolean lastLeftStickButton = false;
+    private boolean lastY = false;
+    
+    // Feeding timing for transfer power ramp
+    private long feedingStartTime = 0;
+    private boolean wasFeeding = false;
+    
+    private ElapsedTime runtime = new ElapsedTime();
 
     @Override
     public void runOpMode() {
+        telemetry.setMsTransmissionInterval(5);
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        
+        // ==================== INITIALIZE HARDWARE FIRST ====================
+        RobotConstants.setRobot(RobotConstants.ROBOT_21171);
         
         // Initialize Drive subsystem
         drive = new Drive(hardwareMap);
         drive.setAlliance(isRedAlliance);
         
-        // Initialize turret motor
+        // Initialize Shooter subsystem (turret motor is handled separately here)
+        shooter = new Shooter(hardwareMap);
+        
+        // Initialize turret motor directly (not through Shooter to avoid conflicts)
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -68,8 +109,16 @@ public class TurretMotorTuning extends LinearOpMode {
         lastError = 0.0;
         lastTime = System.currentTimeMillis() / 1000.0;
         
-        // Init loop - alliance selection
+        // ==================== ROBOT & ALLIANCE SELECT ====================
         while (!opModeIsActive() && !isStopRequested()) {
+            // Robot selection
+            if (gamepad1.y) {
+                selectedRobot = RobotConstants.ROBOT_21171;
+            } else if (gamepad1.a) {
+                selectedRobot = RobotConstants.ROBOT_19564;
+            }
+            
+            // Alliance selection
             if (gamepad1.b) {
                 isRedAlliance = true;
                 drive.setAlliance(true);
@@ -78,45 +127,68 @@ public class TurretMotorTuning extends LinearOpMode {
                 drive.setAlliance(false);
             }
             
-            telemetry.addLine("=== TURRET MOTOR TUNING ===");
+            telemetry.addLine("=== TURRET MOTOR TUNING TELEOP ===");
+            telemetry.addLine("Y = 21171  |  A = 19564");
+            telemetry.addData("Robot", selectedRobot);
+            telemetry.addLine("");
             telemetry.addLine("B = RED | X = BLUE");
             telemetry.addData("Alliance", isRedAlliance ? "RED" : "BLUE");
+            telemetry.addData("Target Tag", isRedAlliance ? 24 : 20);
             telemetry.addLine("");
             telemetry.addData("kP", "%.4f", kP);
             telemetry.addData("kI", "%.5f", kI);
             telemetry.addData("kD", "%.4f", kD);
             telemetry.addLine("");
+            telemetry.addData("Pinpoint Status", drive.getPinpointStatus());
             telemetry.addLine("Press START when ready");
             telemetry.update();
             panelsTelemetry.update(telemetry);
         }
         
+        // Apply the selected robot's constants
+        RobotConstants.setRobot(selectedRobot);
+        
+        // If robot changed from default, re-apply hardware settings
+        if (selectedRobot != RobotConstants.ROBOT_21171) {
+            drive.applyPinpointSettings();
+            shooter.applyMotorSettings();
+        }
+        
+        // Initialize servos (after pinpoint IMU has calibrated)
+        shooter.initServos();
+        
+        // Set alliance
+        drive.setAlliance(isRedAlliance);
+        
+        runtime.reset();
         waitForStart();
         
         // Main loop
-        boolean lastY = false;
-        
         while (opModeIsActive()) {
-            // Update odometry
+            // ==================== UPDATE ODOMETRY ====================
             drive.updateOdometry();
             
-            // Reset position to center field with Y button
-            if (gamepad1.y && !lastY) {
-                // Center field position in mm, heading 270° (facing -Y direction)
-                double centerX = RobotConstants.FIELD_CENTER_X_INCHES * RobotConstants.INCHES_TO_MM;
-                double centerY = RobotConstants.FIELD_CENTER_Y_INCHES * RobotConstants.INCHES_TO_MM;
-                drive.setOdometryPosition(centerX, centerY, 270.0);
+            // ==================== UPDATE LIMELIGHT DATA ====================
+
+            // ==================== ODOMETRY RESET ====================
+            // Reset position to center field with left stick button
+            boolean leftStickButton = gamepad1.left_stick_button;
+            if (leftStickButton && !lastLeftStickButton) {
+                double fieldCenterX = RobotConstants.FIELD_CENTER_X_INCHES * RobotConstants.INCHES_TO_MM;
+                double fieldCenterY = RobotConstants.FIELD_CENTER_Y_INCHES * RobotConstants.INCHES_TO_MM;
+                drive.setOdometryPosition(fieldCenterX, fieldCenterY, 270.0);
             }
-            lastY = gamepad1.y;
+            lastLeftStickButton = leftStickButton;
             
-            // Mecanum drive control
+            // ==================== MECANUM DRIVETRAIN ====================
             double driveInput = -gamepad1.left_stick_y;
             double strafeInput = gamepad1.left_stick_x;
-            double turnInput = gamepad1.right_stick_x;
+            double turnInput = -gamepad1.right_stick_x;
             
-            drive.mecanumDrive(driveInput, strafeInput, turnInput, 1.0);
+            drive.mecanumDriveWithBraking(driveInput, strafeInput, turnInput, 1.0);
             
-            // Calculate turret angle from Drive
+            // ==================== TURRET PID CONTROL ====================
+            // Calculate turret angle from Drive (odometry-based)
             double turretAngleDegrees = drive.calculateTurretAngleToGoal(isRedAlliance);
             
             // Get current turret position
@@ -147,27 +219,177 @@ public class TurretMotorTuning extends LinearOpMode {
             double derivative = (error - lastError) / deltaTime;
             double derivativeTerm = kD * derivative;
             
-            // Calculate output
-            double output = proportional + integralTerm + derivativeTerm;
-            output = Math.max(-maxPower, Math.min(maxPower, output));
+
             
-            // Apply power
-            turretMotor.setPower(output);
+            // Apply turret power (negated to correct direction)
             
-            // Update state
+            // Update PID state
             lastError = error;
             lastTime = currentTime;
             
-            // Telemetry
-            telemetry.addLine("=== TURRET MOTOR TUNING ===");
+            // Check if turret is on target
+            boolean turretOnTarget = Math.abs(error) < TURRET_ON_TARGET_THRESHOLD;
+            
+            // ==================== SHOOTER CONTROL ====================
+            boolean dpadUp = gamepad1.dpad_up;
+            boolean dpadDown = gamepad1.dpad_down;
+            if (dpadUp && !lastDpadUp) {
+                manualRPMMode = true;
+                manualTargetTPS += TPS_INCREMENT;
+                if (manualTargetTPS > 2500) manualTargetTPS = 2500;
+            }
+            if (dpadDown && !lastDpadDown) {
+                manualRPMMode = true;
+                manualTargetTPS -= TPS_INCREMENT;
+                if (manualTargetTPS < 1000) manualTargetTPS = 1000;
+            }
+            lastDpadUp = dpadUp;
+            lastDpadDown = dpadDown;
+            
+            // A button: spin up shooter to target RPM (without feeding)
+            if (gamepad1.a) {
+                if (manualRPMMode) {
+                    shooter.controlShooterManual(manualTargetTPS, true);
+                } else {
+                    shooter.controlShooter(true);
+                }
+            }
+            
+            // ==================== BUMPER SHOOTING (PRESET POSITIONS) ====================
+            boolean leftBumper = gamepad1.left_bumper;
+            boolean rightBumper = gamepad1.right_bumper;
+            boolean shootButtonPressed = leftBumper || rightBumper;
+
+            double turretOutput;
+            if(shootButtonPressed) {
+                shooter.updateLimelightData(isRedAlliance);
+                turretOutput = 0.05 * (0 - shooter.getLimelightTx(isRedAlliance));
+            } else {
+                // Calculate output
+                turretOutput = proportional;
+                turretOutput = Math.max(-maxPower, Math.min(maxPower, turretOutput));
+            }
+
+            turretMotor.setPower(turretOutput);
+
+
+            if (leftBumper) {
+                drive.setPositionOverride(72.0, 30.0);
+                shooter.setDefaultTPSOverride(1750.0);
+            } else if (rightBumper) {
+                drive.setPositionOverride(72.0, 90.0);
+                shooter.setDefaultTPSOverride(1550.0);
+            } else {
+                drive.clearPositionOverride();
+                shooter.clearDefaultTPSOverride();
+            }
+            
+            double currentTPS = shooter.getShooterTPS();
+            double targetTPS;
+            if (manualRPMMode) {
+                targetTPS = manualTargetTPS;
+            } else {
+                targetTPS = shooter.getTargetShooterTPS();
+            }
+            
+            boolean shooterReady = shooter.isShooterSpeedReady(targetTPS);
+            
+            // ==================== INTAKE/TRANSFER CONTROLS ====================
+            boolean feeding = false;
+            
+            // Shooting latch logic
+            if (!shootButtonPressed) {
+                shootingLatched = false;
+            } else {
+                if (shootingLatched) {
+                    // Unlatch if turret goes off target
+                    if (!turretOnTarget) {
+                        shootingLatched = false;
+                    }
+                } else {
+                    // Latch when shooter ready AND turret on target
+                    if (shooterReady && turretOnTarget) {
+                        shootingLatched = true;
+                    }
+                }
+            }
+            
+            // Unblock when shoot button pressed
+            if (shootButtonPressed) {
+                shooter.setBlocker(false);
+            }
+            
+            // Feed when latched and on target
+            if (shootButtonPressed && shootingLatched && turretOnTarget) {
+                if (!wasFeeding) {
+                    feedingStartTime = System.currentTimeMillis();
+                }
+                
+                shooter.setIntakePower(-1.0);
+                
+                double transferPower;
+                if (targetTPS > 1650) {
+                    long feedingDuration = System.currentTimeMillis() - feedingStartTime;
+                    if (feedingDuration < 250) {
+                        transferPower = -1.0;
+                    } else {
+                        transferPower = -0.65;
+                    }
+                } else {
+                    transferPower = -1.0;
+                }
+                shooter.setTransferPower(transferPower);
+                feeding = true;
+            }
+            wasFeeding = feeding;
+            
+            // Shooter control when bumper pressed
+            if (shootButtonPressed) {
+                if (manualRPMMode) {
+                    shooter.controlShooterManual(manualTargetTPS, true, feeding);
+                } else {
+                    shooter.controlShooter(true, feeding);
+                }
+                SHOOTING = true;
+            } else if (!gamepad1.a) {
+                shooter.controlShooter(false);
+                SHOOTING = false;
+            }
+            
+            // Main controller reverse/unjam (left trigger)
+            if (gamepad1.left_trigger > 0.1) {
+                shooter.runIntakeSystem(1.0);
+                shooter.setBlocker(true);
+                feeding = true;
+            }
+            
+            // Main controller intake (right trigger)
+            if (gamepad1.right_trigger > 0.1) {
+                shooter.runIntakeSystem(-1.0);
+                shooter.setBlocker(true);
+                feeding = true;
+            }
+            
+            // Default intake/transfer state when not feeding
+            if (!feeding) {
+                shooter.setIntakePower(-0.1);
+                if (!shootButtonPressed) {
+                    shooter.setBlocker(true);
+                }
+            }
+            
+            // ==================== TELEMETRY ====================
+            telemetry.addLine("=== STATUS ===");
+            telemetry.addData("Robot", RobotConstants.getCurrentRobot());
             telemetry.addData("Alliance", isRedAlliance ? "RED" : "BLUE");
-            telemetry.addLine("Y = Reset to center field (270°)");
+            telemetry.addData("Shooting", SHOOTING);
             telemetry.addLine("");
             
-            telemetry.addLine("=== ODOMETRY ===");
-            telemetry.addData("X (mm)", "%.1f", drive.getCachedX());
-            telemetry.addData("Y (mm)", "%.1f", drive.getCachedY());
-            telemetry.addData("Heading (deg)", "%.1f", drive.getCachedHeading());
+            telemetry.addLine("=== SHOOTER ===");
+            telemetry.addData("Mode", manualRPMMode ? "MANUAL (Dpad)" : "AUTO (Limelight)");
+            telemetry.addData("Velocity", "%.0f / %.0f TPS", currentTPS, targetTPS);
+            telemetry.addData("Ready", shooterReady ? "YES" : "NO");
+            telemetry.addData("Latched", shootingLatched ? "YES" : "NO");
             telemetry.addLine("");
             
             telemetry.addLine("=== TURRET ===");
@@ -175,7 +397,8 @@ public class TurretMotorTuning extends LinearOpMode {
             telemetry.addData("Target Ticks", "%.0f", targetTicks);
             telemetry.addData("Current Ticks", "%.0f", currentTicks);
             telemetry.addData("Error (ticks)", "%.0f", error);
-            telemetry.addData("Output Power", "%.3f", output);
+            telemetry.addData("Output Power", "%.3f", turretOutput);
+            telemetry.addData("On Target", turretOnTarget ? "YES" : "NO");
             telemetry.addLine("");
             
             telemetry.addLine("=== PID ===");
@@ -185,6 +408,20 @@ public class TurretMotorTuning extends LinearOpMode {
             telemetry.addData("P term", "%.4f", proportional);
             telemetry.addData("I term", "%.4f", integralTerm);
             telemetry.addData("D term", "%.4f", derivativeTerm);
+            telemetry.addLine("");
+            
+            telemetry.addLine("=== ODOMETRY ===");
+            telemetry.addData("X (in)", "%.1f", drive.getCachedX() / 25.4);
+            telemetry.addData("Y (in)", "%.1f", drive.getCachedY() / 25.4);
+            telemetry.addData("Heading (deg)", "%.1f", drive.getCachedHeading());
+            telemetry.addLine("");
+            
+            telemetry.addLine("=== CONTROLS ===");
+            telemetry.addLine("LStick = Drive | RStick = Turn");
+            telemetry.addLine("RT = Intake | LT = Outtake");
+            telemetry.addLine("Bumpers = Shoot | A = Spin up");
+            telemetry.addLine("Dpad = Manual TPS | Back = Climber");
+            telemetry.addLine("LStick Click = Reset Odometry");
             
             telemetry.update();
             panelsTelemetry.update(telemetry);
@@ -193,6 +430,7 @@ public class TurretMotorTuning extends LinearOpMode {
         // Stop motors
         turretMotor.setPower(0);
         drive.stopMotors();
+        shooter.stopAll();
     }
 
     /**

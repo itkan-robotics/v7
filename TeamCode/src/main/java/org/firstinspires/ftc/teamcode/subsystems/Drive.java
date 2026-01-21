@@ -101,7 +101,7 @@ public class Drive {
         pinpoint.setOffsets(-12.5, -55, DistanceUnit.MM);  // strafePodX, forwardPodY (matches Constants.java)
         pinpoint.setEncoderResolution(34.311, DistanceUnit.MM);  // matches Constants.java
         pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,
-                GoBildaPinpointDriver.EncoderDirection.REVERSED);  // matches Constants.java
+                GoBildaPinpointDriver.EncoderDirection.FORWARD);  // matches Constants.java
     }
 
     /**
@@ -174,7 +174,7 @@ public class Drive {
      * Get the current cached X position in mm.
      */
     public double getCachedX() {
-        return cachedX;
+        return cachedX; // #MentorBuilt
     }
     
     /**

@@ -37,9 +37,9 @@ public class RobotConstants {
     public static final double MM_TO_INCHES = 1.0 / 25.4;
     
     // ========== GOAL POSITIONS (mm) ==========
-    public static final double GOAL_RED_X = 138.0 * INCHES_TO_MM;
+    public static final double GOAL_RED_X = 6.0 * INCHES_TO_MM;
     public static final double GOAL_RED_Y = 143.5 * INCHES_TO_MM;
-    public static final double GOAL_BLUE_X = 6.0 * INCHES_TO_MM;
+    public static final double GOAL_BLUE_X = 138.0 * INCHES_TO_MM;
     public static final double GOAL_BLUE_Y = 143.5 * INCHES_TO_MM;
     
     // ========== DRIVETRAIN CONSTANTS ==========
@@ -88,14 +88,17 @@ public class RobotConstants {
     public static final double TURRET_MAX_TICKS = 373;  // Corresponds to 355°
     
     // Turret PID constants
-    public static final double TURRET_KP = 0.002;
+    //public static final double TURRET_KP = 0.002;
+
+    public static final double TURRET_KP = 0.085;
+
     public static final double TURRET_KI = 0.0;
     public static final double TURRET_KD = 0.0;
     public static final double TURRET_TOLERANCE_DEGREES = 2.0;
     public static final double TURRET_TOLERANCE_TICKS = TURRET_TOLERANCE_DEGREES * TURRET_TICKS_PER_DEGREE;
     
     // Visual tracking PID
-    public static final double TURRET_VISUAL_KP = 0.03;
+    public static final double TURRET_VISUAL_KP = 0.005; // !!!! THIS NEEDS TUNING
     
     // Legacy turret servo constants (for reference)
     public static double getTurretHeadingSign() {

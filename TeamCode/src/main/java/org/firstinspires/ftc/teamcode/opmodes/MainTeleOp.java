@@ -114,11 +114,17 @@ public class MainTeleOp extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            // Update odometry
+            // ==================== UPDATE ODOMETRY FIRST ====================
             drive.updateOdometry();
+            shooter.updateLimelightData(isRedAlliance);
+            
+            // ==================== TURRET TRACKING ====================
+            double goalX = isRedAlliance ? RobotConstants.GOAL_RED_X : RobotConstants.GOAL_BLUE_X;
+            double goalY = isRedAlliance ? RobotConstants.GOAL_RED_Y : RobotConstants.GOAL_BLUE_Y;
+
+            shooter.pointTurretAtGoal(isRedAlliance, true, drive.calculateTurretAngleToGoal(goalX, goalY));
 
             // ==================== UPDATE LIMELIGHT DATA (once per loop) ====================
-            shooter.updateLimelightData(isRedAlliance);
 
             // Get cached limelight values
             double tx = shooter.getLimelightTx(isRedAlliance);
@@ -173,18 +179,15 @@ public class MainTeleOp extends LinearOpMode {
             if (leftBumper) {
                 drive.setPositionOverride(72.0, 30.0);
                 shooter.setDefaultTPSOverride(1750.0);
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setCloseShotOverride(false);
+                shooter.pointTurretAtGoal(isRedAlliance, true, drive.calculateTurretAngleToGoal(goalX, goalY));
             } else if (rightBumper) {
                 drive.setPositionOverride(72.0, 90.0);
                 shooter.setDefaultTPSOverride(1550.0);
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setCloseShotOverride(true);
+                shooter.pointTurretAtGoal(isRedAlliance, true, drive.calculateTurretAngleToGoal(goalX, goalY));
             } else {
                 drive.clearPositionOverride();
                 shooter.clearDefaultTPSOverride();
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setCloseShotOverride(false);
+                shooter.pointTurretAtGoal(isRedAlliance, false, drive.calculateTurretAngleToGoal(goalX, goalY));
             }
 
             double currentTPS = shooter.getShooterTPS();
