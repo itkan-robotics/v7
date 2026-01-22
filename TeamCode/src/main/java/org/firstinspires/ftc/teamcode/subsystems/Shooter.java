@@ -69,6 +69,13 @@ public class Shooter {
     private double targetTxOffset = 1.0;
     private double lastVisualError = 0.0;
     
+    // Turret PID override values (for runtime tuning via Panels)
+    private Double turretKpOverride = null;
+    private Double turretVisualKpOverride = null;
+    private Double turretVisualKdOverride = null;
+    private Double turretVisualKfOverride = null;
+    private Double turretTurnFfOverride = null;
+    
     // Turret zeroing state machine
     private enum TurretZeroState {
         IDLE,
@@ -395,6 +402,75 @@ public class Shooter {
     public double getTargetTxOffset() {
         return targetTxOffset;
     }
+    
+    // ========== TURRET PID OVERRIDE SETTERS (for Panels tuning) ==========
+    
+    /**
+     * Set override for turret position Kp (null to use RobotConstants default)
+     */
+    public void setTurretKpOverride(Double kp) {
+        turretKpOverride = kp;
+    }
+    
+    /**
+     * Set override for turret visual Kp (null to use RobotConstants default)
+     */
+    public void setTurretVisualKpOverride(Double kp) {
+        turretVisualKpOverride = kp;
+    }
+    
+    /**
+     * Set override for turret visual Kd (null to use RobotConstants default)
+     */
+    public void setTurretVisualKdOverride(Double kd) {
+        turretVisualKdOverride = kd;
+    }
+    
+    /**
+     * Set override for turret visual Kf (null to use RobotConstants default)
+     */
+    public void setTurretVisualKfOverride(Double kf) {
+        turretVisualKfOverride = kf;
+    }
+    
+    /**
+     * Set override for turret turn feedforward (null to use RobotConstants default)
+     */
+    public void setTurretTurnFfOverride(Double ff) {
+        turretTurnFfOverride = ff;
+    }
+    
+    /**
+     * Set all turret PID overrides at once (pass null for any value to use default)
+     */
+    public void setTurretPidOverrides(Double kp, Double visualKp, Double visualKd, Double visualKf, Double turnFf) {
+        turretKpOverride = kp;
+        turretVisualKpOverride = visualKp;
+        turretVisualKdOverride = visualKd;
+        turretVisualKfOverride = visualKf;
+        turretTurnFfOverride = turnFf;
+    }
+    
+    // Helper methods to get effective PID values (override or default)
+    private double getEffectiveTurretKp() {
+        return turretKpOverride != null ? turretKpOverride : RobotConstants.TURRET_KP;
+    }
+    
+    private double getEffectiveVisualKp() {
+        return turretVisualKpOverride != null ? turretVisualKpOverride : RobotConstants.TURRET_VISUAL_KP;
+    }
+    
+    private double getEffectiveVisualKd() {
+        return turretVisualKdOverride != null ? turretVisualKdOverride : RobotConstants.TURRET_VISUAL_KD;
+    }
+    
+    private double getEffectiveVisualKf() {
+        return turretVisualKfOverride != null ? turretVisualKfOverride : RobotConstants.TURRET_VISUAL_KF;
+    }
+    
+    private double getEffectiveTurnFf() {
+        return turretTurnFfOverride != null ? turretTurnFfOverride : RobotConstants.TURRET_TURN_FF;
+    }
 
     public void pointTurretVisual(boolean isRedAlliance, double turnInput) {
          double tx = getLimelightTx(isRedAlliance);
@@ -406,12 +482,28 @@ public class Shooter {
              return;
          }
          
-         double pTerm = error * RobotConstants.TURRET_VISUAL_KP;
-         double dTerm = derivative * RobotConstants.TURRET_VISUAL_KD;
-         double ffTerm = turnInput * RobotConstants.TURRET_TURN_FF;
-         double kfTerm = Math.signum(error) * RobotConstants.TURRET_VISUAL_KF;
+         double pTerm = error * getEffectiveVisualKp();
+         double dTerm = derivative * getEffectiveVisualKd();
+         double ffTerm = turnInput * getEffectiveTurnFf();
+         double kfTerm = Math.signum(error) * getEffectiveVisualKf();
          double power = Math.max(-0.5, Math.min(0.5, pTerm + dTerm + ffTerm + kfTerm));
          turretMotor.setPower(power);
+    }
+    public void pointTurretVisual(boolean isRedAlliance) {
+        double tx = getLimelightTx(isRedAlliance);
+        double error = targetTxOffset - tx;
+        double derivative = error - lastVisualError;
+        lastVisualError = error;
+        if(Math.abs(error) < 0.25) {
+            turretMotor.setPower(0.0);
+            return;
+        }
+
+        double pTerm = error * getEffectiveVisualKp();
+        double dTerm = derivative * getEffectiveVisualKd();
+        double kfTerm = Math.signum(error) * getEffectiveVisualKf();
+        double power = Math.max(-0.5, Math.min(0.5, pTerm + dTerm + kfTerm));
+        turretMotor.setPower(power);
     }
 
     public void pointTurretByPosition(boolean isRedAlliance, double targetAngleDegrees, double turnInput) {
@@ -419,10 +511,19 @@ public class Shooter {
          double currentTicks = turretMotor.getCurrentPosition();
          double errorTicks = targetTicks - currentTicks;
 
-         double pTerm = errorTicks * RobotConstants.TURRET_KP;
-         double ffTerm = turnInput * RobotConstants.TURRET_TURN_FF;
+         double pTerm = errorTicks * getEffectiveTurretKp();
+         double ffTerm = turnInput * getEffectiveTurnFf();
          double power = Math.max(-1.0, Math.min(1.0, pTerm + ffTerm));
          turretMotor.setPower(power);
+    }
+    public void pointTurretByPosition(double targetAngleDegrees) {
+        double targetTicks = angleToTurretTicks(targetAngleDegrees);
+        double currentTicks = turretMotor.getCurrentPosition();
+        double errorTicks = targetTicks - currentTicks;
+
+        double pTerm = errorTicks * getEffectiveTurretKp();
+        double power = Math.max(-1.0, Math.min(1.0, pTerm));
+        turretMotor.setPower(power);
     }
 
     public void controlShooterManual(double targetTPS, boolean running) {

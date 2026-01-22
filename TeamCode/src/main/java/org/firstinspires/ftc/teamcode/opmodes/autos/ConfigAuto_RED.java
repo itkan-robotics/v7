@@ -365,7 +365,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             case StartToShoot:
                 // StartToShot: Go to first shooting position
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setTurretAngle(-18);
+                shooter.pointTurretByPosition(-45);
                 shooter.setIndexerMiddle();
                 shooterRunning = true;
                 follower.followPath(paths.StartToShot, true);
@@ -400,7 +400,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             case GoToShooting2:
                 // Tape2ToShoot2: Return to shooting position 2
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setTurretAngle(-74);
+                shooter.pointTurretByPosition(-45);
                 shooterRunning = true;
                 follower.followPath(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
@@ -426,7 +426,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             case ShootLever:
                 // LeverToShoot3: Set turret to -75, stop intake, turn on shooter
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setTurretAngle(-80);
+                 shooter.pointTurretByPosition(-45);
                 shooterRunning = true;
                 follower.followPath(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -446,8 +446,8 @@ public class ConfigAuto_RED extends LinearOpMode {
             case Tape1Shoot:
                 // tape1ToShoot4: Go to shooting position
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setTurretAngle(-85);
-                //  shooter.stopIntakeSystem();
+                shooter.pointTurretByPosition(-45);
+                shooter.stopIntakeSystem();
                 shooterRunning = true;
                 follower.followPath(paths.tape1ToShoot4, true);
                 pathTimer.reset();
@@ -467,7 +467,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === FINAL SHOT ===
             case CornerToShoot:
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setTurretAngle(-63);
+                shooter.pointTurretByPosition(-45);
 
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
@@ -490,7 +490,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
             case SuicideToShoot:
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                // shooter.setTurretAngle(-52);
+                shooter.pointTurretByPosition(-45);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
@@ -607,7 +607,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 //                    targetShooterVelocity = updateTargetShooterVelocity();
                     if(shooting) {
                         limelight.update();
-                        limelightTurretAutoAlign();
+                        shooter.pointTurretVisual(true);
                         boolean isAligned = limelight.isAlignedForShooting();
                         boolean timedOut = alignTimer.seconds() >= ALIGN_TIMEOUT;
                         boolean shooterSpeedReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= RobotConstants.VELOCITY_TOLERANCE;

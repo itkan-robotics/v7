@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -7,8 +10,24 @@ import org.firstinspires.ftc.teamcode.Constants.RobotConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Drive;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
+@Configurable
 @TeleOp(name="MainTeleop1", group="Linear Opmode")
 public class MainTeleOp extends LinearOpMode {
+
+    // ========== TURRET TUNING VALUES (Configurable via Panels) ==========
+    // Position-based turret Kp
+    public static double turretKp = RobotConstants.TURRET_KP;  // 0.04
+    
+    // Visual tracking PID
+    public static double turretVisualKp = RobotConstants.TURRET_VISUAL_KP;  // 0.006
+    public static double turretVisualKd = RobotConstants.TURRET_VISUAL_KD;  // 0.006
+    public static double turretVisualKf = RobotConstants.TURRET_VISUAL_KF;  // 0.15
+    
+    // Turn feedforward
+    public static double turretTurnFf = RobotConstants.TURRET_TURN_FF;  // -0.9
+    
+    // Panels telemetry manager
+    private TelemetryManager panelsTelemetry;
 
     // Subsystems
     private Drive drive;
@@ -57,6 +76,7 @@ public class MainTeleOp extends LinearOpMode {
     @Override
     public void runOpMode() {
         telemetry.setMsTransmissionInterval(5);
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // ==================== INITIALIZE HARDWARE FIRST ====================
         RobotConstants.setRobot(RobotConstants.ROBOT_21171);
@@ -84,8 +104,17 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addLine("");
             telemetry.addData("Pinpoint Status", drive.getPinpointStatus());
             telemetry.addData("Turret Zero", shooter.isTurretZeroComplete() ? "COMPLETE" : "IN PROGRESS...");
+            telemetry.addLine("");
+            telemetry.addData("=== TURRET TUNING (Panels) ===", "");
+            telemetry.addData("Pos Kp", "%.4f", turretKp);
+            telemetry.addData("Vis Kp", "%.4f", turretVisualKp);
+            telemetry.addData("Vis Kd", "%.4f", turretVisualKd);
+            telemetry.addData("Vis Kf", "%.4f", turretVisualKf);
+            telemetry.addData("Turn FF", "%.2f", turretTurnFf);
+            telemetry.addLine("");
             telemetry.addData("Status", "Press START when ready");
             telemetry.update();
+            panelsTelemetry.update(telemetry);
 
             // Robot selection
             if (gamepad1.y) {
@@ -181,6 +210,9 @@ public class MainTeleOp extends LinearOpMode {
             if (!shooter.isTurretZeroComplete()) {
                 shooter.updateTurretZero();
             } else {
+                // Apply Panels-tuned PID values to shooter
+                shooter.setTurretPidOverrides(turretKp, turretVisualKp, turretVisualKd, turretVisualKf, turretTurnFf);
+                
                 shooter.pointTurretAtGoal(isRedAlliance, allowVisualTracking, turretTargetAngle, rotate);
                 // Visual tracking is active if allowed AND correct target is detected
                 usingVisualTracking = allowVisualTracking && hasCorrectTarget;
@@ -378,8 +410,17 @@ public class MainTeleOp extends LinearOpMode {
                 drive.getOdometryY() / 25.4,
                 drive.getOdometryHeading(),
                 hasCorrectTarget ? "[FROZEN]" : "");
+            
+            telemetry.addLine("");
+            telemetry.addData("=== TURRET TUNING (Panels) ===", "");
+            telemetry.addData("Pos Kp", "%.4f", turretKp);
+            telemetry.addData("Vis Kp", "%.4f", turretVisualKp);
+            telemetry.addData("Vis Kd", "%.4f", turretVisualKd);
+            telemetry.addData("Vis Kf", "%.4f", turretVisualKf);
+            telemetry.addData("Turn FF", "%.2f", turretTurnFf);
 
             telemetry.update();
+            panelsTelemetry.update(telemetry);
         }
         // Stop everything
         drive.stopMotors();
