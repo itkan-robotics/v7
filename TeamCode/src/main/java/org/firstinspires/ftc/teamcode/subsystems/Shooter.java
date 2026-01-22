@@ -66,8 +66,20 @@ public class Shooter {
     private Servo indexingServo;
     
     // Turret state
-    private double targetTxOffset = 0.0;
-    private double autoTxOffset = 0.0;
+    private double targetTxOffset = 1.0;
+    private double lastVisualError = 0.0;
+    
+    // Turret zeroing state machine
+    private enum TurretZeroState {
+        IDLE,
+        DRIVING_TO_HARDSTOP,
+        COMPLETE
+    }
+    private TurretZeroState turretZeroState = TurretZeroState.IDLE;
+    private long turretZeroStartTime = 0;
+    private static final double TURRET_ZERO_POWER = -0.5;
+    private static final long TURRET_ZERO_MIN_TIME_MS = 200;
+    private static final double TURRET_ZERO_VELOCITY_THRESHOLD = 5.0;
 
 
 
@@ -88,6 +100,9 @@ public class Shooter {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.pipelineSwitch(0);
         limelight.start();
+        
+        // Default to tracking no specific tags until alliance is set
+        limelight.updatePythonInputs(new double[]{0, 0, 0, 0, 0, 0, 0, 0});
 
         // Initialize shooter motor
         shooterMotor = hardwareMap.get(DcMotorEx.class, "shooter_motor");
@@ -97,9 +112,9 @@ public class Shooter {
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // TURRET MOTOR COMMENTED OUT - Controlled directly in TurretMotorTuning to avoid double hardware init
-         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
-         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-         turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
+        turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
@@ -290,57 +305,123 @@ public class Shooter {
     
     /**
      * Stop the turret motor.
-     * COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
      */
     public void stopTurret() {
-        // turretMotor.setPower(0);
-        // Placeholder - turret controlled in TurretMotorTuning
+        turretMotor.setPower(0);
     }
     
     /**
-     * Set the Drive reference for odometry-based turret tracking.
+     * Start the turret zeroing process. Call this once to begin zeroing.
      */
+    public void startTurretZero() {
+        turretZeroState = TurretZeroState.DRIVING_TO_HARDSTOP;
+        turretZeroStartTime = System.currentTimeMillis();
+    }
+    
+    /**
+     * Update the turret zeroing state machine. Call this in a loop during initialization.
+     * Drives turret at low negative power until it hits hardstop (velocity = 0),
+     * then resets encoder.
+     * 
+     * @return true if zeroing is complete, false if still in progress
+     */
+    public boolean updateTurretZero() {
+        switch (turretZeroState) {
+            case IDLE:
+                return true;
+                
+            case DRIVING_TO_HARDSTOP:
+                turretMotor.setPower(TURRET_ZERO_POWER);
+                
+                long elapsed = System.currentTimeMillis() - turretZeroStartTime;
+                double velocity = Math.abs(turretMotor.getVelocity());
+                
+                if (elapsed > TURRET_ZERO_MIN_TIME_MS && velocity < TURRET_ZERO_VELOCITY_THRESHOLD) {
+                    turretMotor.setPower(0);
+                    turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                    turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                    turretZeroState = TurretZeroState.COMPLETE;
+                }
+                return false;
+                
+            case COMPLETE:
+                return true;
+                
+            default:
+                return true;
+        }
+    }
+    
+    /**
+     * Check if turret zeroing is complete.
+     */
+    public boolean isTurretZeroComplete() {
+        return turretZeroState == TurretZeroState.COMPLETE || turretZeroState == TurretZeroState.IDLE;
+    }
+    
+    /**
+     * Reset turret zero state to allow re-zeroing.
+     */
+    public void resetTurretZeroState() {
+        turretZeroState = TurretZeroState.IDLE;
+    }
 
 
-    public void pointTurretAtGoal(boolean isRedAlliance, boolean allowVisualTracking, double dih) {
+    public void pointTurretAtGoal(boolean isRedAlliance, boolean allowVisualTracking, double targetAngle) {
+        pointTurretAtGoal(isRedAlliance, allowVisualTracking, targetAngle, 0.0);
+    }
+    
+    public void pointTurretAtGoal(boolean isRedAlliance, boolean allowVisualTracking, double targetAngle, double turnInput) {
         int expectedTagId = isRedAlliance ? 24 : 20;
         int detectedTagId = getDetectedAprilTagId(isRedAlliance);
-        boolean turretUsingVisualTracking;
         if (allowVisualTracking && detectedTagId == expectedTagId) {
-            turretUsingVisualTracking = true;
-            pointTurretVisual(isRedAlliance);
+            pointTurretVisual(isRedAlliance, turnInput);
         } else {
-            turretUsingVisualTracking = false;
-            pointTurretByPosition(isRedAlliance, dih);
+            pointTurretByPosition(isRedAlliance, targetAngle, turnInput);
         }
     }
 
-    // COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
-    public void pointTurretVisual(boolean isRedAlliance) {
-         double tx = getLimelightTx(isRedAlliance);
-         double ta = getAprilTagArea();
-         double distanceInches = 100.0;
-         if (ta > 0.1) {
-             distanceInches = 50.0 / Math.sqrt(ta);
-         }
-         double error = targetTxOffset - tx;
-         double power = Math.max(-1.0, Math.min(1.0, error * RobotConstants.TURRET_VISUAL_KP));
-         turretMotor.setPower(-power);
+    /**
+     * Set the target TX offset for visual tracking.
+     * @param offset The desired TX offset in degrees
+     */
+    public void setTargetTxOffset(double offset) {
+        targetTxOffset = offset;
+    }
+    
+    /**
+     * Get the current target TX offset.
+     */
+    public double getTargetTxOffset() {
+        return targetTxOffset;
     }
 
+    public void pointTurretVisual(boolean isRedAlliance, double turnInput) {
+         double tx = getLimelightTx(isRedAlliance);
+         double error = targetTxOffset - tx;
+         double derivative = error - lastVisualError;
+         lastVisualError = error;
+         if(Math.abs(error) < 0.25) {
+             turretMotor.setPower(0.0);
+             return;
+         }
+         
+         double pTerm = error * RobotConstants.TURRET_VISUAL_KP;
+         double dTerm = derivative * RobotConstants.TURRET_VISUAL_KD;
+         double ffTerm = turnInput * RobotConstants.TURRET_TURN_FF;
+         double kfTerm = Math.signum(error) * RobotConstants.TURRET_VISUAL_KF;
+         double power = Math.max(-0.5, Math.min(0.5, pTerm + dTerm + ffTerm + kfTerm));
+         turretMotor.setPower(power);
+    }
 
-
-    // COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
-    public void pointTurretByPosition(boolean isRedAlliance, double targetAngleDegrees) {
-        // // Get turret angle from Drive (angle relative to intake)
-        // // Convert angle to target ticks
+    public void pointTurretByPosition(boolean isRedAlliance, double targetAngleDegrees, double turnInput) {
          double targetTicks = angleToTurretTicks(targetAngleDegrees);
-
-         // Calculate error in ticks
          double currentTicks = turretMotor.getCurrentPosition();
          double errorTicks = targetTicks - currentTicks;
 
-         double power = Math.max(-1.0, Math.min(1.0, errorTicks * RobotConstants.TURRET_KP));
+         double pTerm = errorTicks * RobotConstants.TURRET_KP;
+         double ffTerm = turnInput * RobotConstants.TURRET_TURN_FF;
+         double power = Math.max(-1.0, Math.min(1.0, pTerm + ffTerm));
          turretMotor.setPower(power);
     }
 
@@ -394,6 +475,7 @@ public class Shooter {
     public double getShooterVelocity() {
         return getShooterTPS();
     }
+    public double getTurretPower() { return turretMotor.getPower(); }
     
     /**
      * Bang-bang velocity control for autonomous
@@ -462,15 +544,18 @@ public class Shooter {
 
         if (cachedLimelightResult != null && cachedLimelightResult.isValid()) {
             cachedHasTarget = true;
-            cachedTx = cachedLimelightResult.getTx();
-            cachedTy = cachedLimelightResult.getTy();
-            cachedTa = cachedLimelightResult.getTa();
-
+            
+            // Find the specific goal tag for our alliance
             int targetTagId = isRedAlliance ? 24 : 20;
             LLResultTypes.FiducialResult goalTag = findTargetTag(targetTagId);
 
             if (goalTag != null) {
+                // Use tx/ty from the SPECIFIC goal tag, not the primary result
+                // This ensures we ignore incorrect tags when multiple are visible
                 cachedTagId = (int) goalTag.getFiducialId();
+                cachedTx = goalTag.getTargetXDegrees();
+                cachedTy = goalTag.getTargetYDegrees();
+                cachedTa = goalTag.getTargetArea();
 
                 org.firstinspires.ftc.robotcore.external.navigation.Pose3D cameraPose = goalTag.getTargetPoseCameraSpace();
                 if (cameraPose != null) {
@@ -479,8 +564,42 @@ public class Shooter {
                     double z = cameraPose.getPosition().z;
                     cachedTagDistance = Math.sqrt(x * x + y * y + z * z);
                 }
+            } else {
+                // No correct tag found - use primary result for ty (shooter speed) only
+                // but leave cachedTagId as -1 so visual tracking won't be used
+                cachedTy = cachedLimelightResult.getTy();
+                cachedTa = cachedLimelightResult.getTa();
             }
         }
+    }
+
+    /**
+     * Get a comma-separated string of all detected tag IDs for debugging.
+     */
+    public String getAllDetectedTagIds() {
+        if (cachedLimelightResult == null || !cachedLimelightResult.isValid()) {
+            return "none";
+        }
+        java.util.List<LLResultTypes.FiducialResult> fiducials = cachedLimelightResult.getFiducialResults();
+        if (fiducials == null || fiducials.isEmpty()) {
+            return "none";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < fiducials.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append((int) fiducials.get(i).getFiducialId());
+        }
+        return sb.toString();
+    }
+    
+    /**
+     * Get the primary (first) tag's tx for debugging comparison.
+     */
+    public double getPrimaryTx() {
+        if (cachedLimelightResult != null && cachedLimelightResult.isValid()) {
+            return cachedLimelightResult.getTx();
+        }
+        return 0.0;
     }
 
     private LLResultTypes.FiducialResult findTargetTag(int targetTagId) {
@@ -521,6 +640,19 @@ public class Shooter {
 
     public boolean hasLimelightTarget() {
         return cachedHasTarget;
+    }
+    
+    /**
+     * Invalidate cached limelight data. Call when not actively updating limelight
+     * to prevent stale data from being used for visual tracking.
+     */
+    public void invalidateLimelightCache() {
+        cachedHasTarget = false;
+        cachedTagId = -1;
+        cachedTx = 0.0;
+        cachedTy = 0.0;
+        cachedTa = 0.0;
+        cachedTagDistance = 0.0;
     }
 
     public Limelight3A getLimelight() {

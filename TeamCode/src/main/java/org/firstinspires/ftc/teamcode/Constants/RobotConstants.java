@@ -76,6 +76,7 @@ public class RobotConstants {
     public static final double TURRET_MIN_ANGLE = 5.0;        // Angle at 0 ticks (hardstop)
     public static final double TURRET_MAX_ANGLE = 355.0;      // Angle at max ticks (hardstop)
     public static final double TURRET_ANGLE_RANGE = TURRET_MAX_ANGLE - TURRET_MIN_ANGLE;  // 350°
+    public static final double TURRET_CENTER_OFFSET = 2.5 * INCHES_TO_MM;
     
     // Turret range limits (in ticks)
     public static final double TURRET_MIN_TICKS = 0;          // Corresponds to 5°
@@ -84,15 +85,18 @@ public class RobotConstants {
     // Turret PID constants
     //public static final double TURRET_KP = 0.002;
 
-    public static final double TURRET_KP = 0.085;
+    public static final double TURRET_KP = 0.05;
 
     public static final double TURRET_KI = 0.0;
     public static final double TURRET_KD = 0.0;
-    public static final double TURRET_TOLERANCE_DEGREES = 2.0;
-    public static final double TURRET_TOLERANCE_TICKS = TURRET_TOLERANCE_DEGREES * TURRET_TICKS_PER_DEGREE;
+
+    // Visual tracking PD
+    public static final double TURRET_VISUAL_KP = 0.003;
+    public static final double TURRET_VISUAL_KD = 0.01;
     
-    // Visual tracking PID
-    public static final double TURRET_VISUAL_KP = 0.005; // !!!! THIS NEEDS TUNING
+    // Turret feedforward to counteract base rotation
+    public static final double TURRET_TURN_FF = -0.9;
+    public static final double TURRET_VISUAL_KF = 0.15;
     
     // Legacy turret servo constants (for reference)
     public static double getTurretHeadingSign() {

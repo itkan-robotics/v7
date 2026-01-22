@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.robot.Robot;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -133,14 +134,14 @@ public class Drive {
      */
     public double calculateTurretAngleToGoal(double goalX, double goalY) {
         // Calculate delta from robot center to goal
-        double deltaX = goalX - cachedX - 2.5; //offset for turret not in center
-        double deltaY = goalY - cachedY;
+        double deltaX = goalX - cachedX - RobotConstants.TURRET_CENTER_OFFSET * Math.cos(cachedHeading);
+        double deltaY = goalY - cachedY - RobotConstants.TURRET_CENTER_OFFSET * Math.sin(cachedHeading);
 
         // Field angle from robot to goal (0° = positive X axis, increases counter-clockwise)
         double fieldAngleToGoal = Math.toDegrees(Math.atan2(deltaY, deltaX));
 
         // Turret angle = angle to goal relative to robot's front (intake direction)
-        double turretAngle = 180 -(fieldAngleToGoal - (cachedHeading)); // add 90 to convert robot angle to turret angle
+        double turretAngle = fieldAngleToGoal - cachedHeading; // add 90 to convert robot angle to turret angle
 
         // Normalize to 0-360 range
         while (turretAngle < 0) turretAngle += 360;
@@ -258,8 +259,8 @@ public class Drive {
         pinpoint.update();
 
         // Cache position data
-        cachedX = pinpoint.getPosY(DistanceUnit.MM);
-        cachedY = pinpoint.getPosX(DistanceUnit.MM);
+        cachedX = pinpoint.getPosX(DistanceUnit.MM);
+        cachedY = pinpoint.getPosY(DistanceUnit.MM);
         cachedHeading = pinpoint.getHeading(AngleUnit.DEGREES);
 
         // Read new velocity from Pinpoint
@@ -310,9 +311,25 @@ public class Drive {
 
     /**
      * Get cached velocity magnitude (mm/sec). Uses cached velocity values.
+     * NOTE: This depends on odometry updates - may be stale if odometry frozen.
      */
     public double getVelocityMagnitude() {
         return Math.sqrt(cachedVelocityX * cachedVelocityX + cachedVelocityY * cachedVelocityY);
+    }
+    
+    /**
+     * Get drive motor velocity magnitude from encoder readings.
+     * Reads directly from motors - always fresh, independent of odometry updates.
+     * Returns the maximum absolute velocity of all four drive motors (ticks/sec).
+     */
+    public double getDriveEncoderVelocity() {
+        double flVel = Math.abs(frontLeft.getVelocity());
+        double frVel = Math.abs(frontRight.getVelocity());
+        double blVel = Math.abs(backLeft.getVelocity());
+        double brVel = Math.abs(backRight.getVelocity());
+        
+        // Return max velocity - if any wheel is moving, robot is not stationary
+        return Math.max(Math.max(flVel, frVel), Math.max(blVel, brVel));
     }
 
     /**
