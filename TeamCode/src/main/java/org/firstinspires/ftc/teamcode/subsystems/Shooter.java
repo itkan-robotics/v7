@@ -62,6 +62,11 @@ public class Shooter {
     private long transferStartTime = 0;
     private boolean transferWasRunning = false;
     
+    // Throttled 3-ball detection (expensive current + voltage reads)
+    private static final long THREE_BALL_CHECK_INTERVAL_MS = 50;
+    private long lastThreeBallCheckTime = 0;
+    private boolean cachedHasThreeBalls = false;
+    
     // Indexer servo (for autonomous compatibility)
     private Servo indexingServo;
     
@@ -784,20 +789,33 @@ public class Shooter {
         setIntakePower(power);  // Same motor now
     }
 
+    /**
+     * Check if intake has three balls (throttled to every 50ms to save loop time).
+     * Uses cached result between checks to avoid expensive current/voltage reads.
+     */
     public boolean hasThreeBalls() {
         if (!transferWasRunning) {
+            cachedHasThreeBalls = false;
             return false;
         }
 
         long timeSinceStart = System.currentTimeMillis() - transferStartTime;
         if (timeSinceStart < RobotConstants.TRANSFER_STARTUP_IGNORE_TIME) {
+            cachedHasThreeBalls = false;
             return false;
         }
 
-        double currentAmps = intakeTransferMotor.getCurrent(CurrentUnit.AMPS);
-        double voltage = voltageSensor.getVoltage();
-        double power = currentAmps * voltage;
-        return power > RobotConstants.THREE_BALL_POWER_THRESHOLD;
+        // Throttle expensive current/voltage reads to every 50ms
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastThreeBallCheckTime >= THREE_BALL_CHECK_INTERVAL_MS) {
+            lastThreeBallCheckTime = currentTime;
+            double currentAmps = intakeTransferMotor.getCurrent(CurrentUnit.AMPS);
+            double voltage = voltageSensor.getVoltage();
+            double power = currentAmps * voltage;
+            cachedHasThreeBalls = power > RobotConstants.THREE_BALL_POWER_THRESHOLD;
+        }
+        
+        return cachedHasThreeBalls;
     }
 
     public double getTransferCurrent() {

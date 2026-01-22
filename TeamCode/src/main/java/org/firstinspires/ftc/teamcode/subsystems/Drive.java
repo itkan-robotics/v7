@@ -54,6 +54,12 @@ public class Drive {
     private static final double ACTIVE_BRAKE_INPUT_THRESHOLD = 0.10;
     private static final double ACTIVE_BRAKE_GAIN = 0.0005;
 
+    // Cached drive motor velocities (updated once per loop via cacheDriveVelocities())
+    private double cachedFlVelocity = 0;
+    private double cachedFrVelocity = 0;
+    private double cachedBlVelocity = 0;
+    private double cachedBrVelocity = 0;
+
     // Position override for preset shooting positions
     private boolean positionOverrideActive = false;
     private double overrideX = 0;
@@ -186,6 +192,30 @@ public class Drive {
 
     // ========== MECANUM DRIVE ==========
 
+    /**
+     * Cache all drive motor velocities. Call once per loop at the start,
+     * then use getCachedDriveVelocity() and mecanumDriveWithBrakingCached() 
+     * to avoid redundant hardware reads.
+     */
+    public void cacheDriveVelocities() {
+        cachedFlVelocity = frontLeft.getVelocity();
+        cachedFrVelocity = frontRight.getVelocity();
+        cachedBlVelocity = backLeft.getVelocity();
+        cachedBrVelocity = backRight.getVelocity();
+    }
+
+    /**
+     * Get the maximum cached drive motor velocity (ticks/sec).
+     * Must call cacheDriveVelocities() first each loop.
+     */
+    public double getCachedDriveVelocity() {
+        double flVel = Math.abs(cachedFlVelocity);
+        double frVel = Math.abs(cachedFrVelocity);
+        double blVel = Math.abs(cachedBlVelocity);
+        double brVel = Math.abs(cachedBrVelocity);
+        return Math.max(Math.max(flVel, frVel), Math.max(blVel, brVel));
+    }
+
     public void mecanumDrive(double drive, double strafe, double turn, double speedMultiplier) {
         // Normal driving
         double d = -drive;
@@ -206,17 +236,12 @@ public class Drive {
     public void mecanumDriveWithBraking(double drive, double strafe, double turn, double speedMultiplier) {
         double inputMagnitude = Math.max(Math.abs(drive), Math.max(Math.abs(strafe), Math.abs(turn)));
 
-        // Active braking when input is below threshold
+        // Active braking when input is below threshold - uses cached velocities
         if (inputMagnitude < ACTIVE_BRAKE_INPUT_THRESHOLD) {
-            double flVel = frontLeft.getVelocity();
-            double frVel = frontRight.getVelocity();
-            double blVel = backLeft.getVelocity();
-            double brVel = backRight.getVelocity();
-
-            double flPower = Math.max(-1.0, Math.min(1.0, -flVel * ACTIVE_BRAKE_GAIN));
-            double frPower = Math.max(-1.0, Math.min(1.0, -frVel * ACTIVE_BRAKE_GAIN));
-            double blPower = Math.max(-1.0, Math.min(1.0, -blVel * ACTIVE_BRAKE_GAIN));
-            double brPower = Math.max(-1.0, Math.min(1.0, -brVel * ACTIVE_BRAKE_GAIN));
+            double flPower = Math.max(-1.0, Math.min(1.0, -cachedFlVelocity * ACTIVE_BRAKE_GAIN));
+            double frPower = Math.max(-1.0, Math.min(1.0, -cachedFrVelocity * ACTIVE_BRAKE_GAIN));
+            double blPower = Math.max(-1.0, Math.min(1.0, -cachedBlVelocity * ACTIVE_BRAKE_GAIN));
+            double brPower = Math.max(-1.0, Math.min(1.0, -cachedBrVelocity * ACTIVE_BRAKE_GAIN));
 
             frontLeft.setPower(flPower);
             frontRight.setPower(frPower);
@@ -319,8 +344,8 @@ public class Drive {
     
     /**
      * Get drive motor velocity magnitude from encoder readings.
-     * Reads directly from motors - always fresh, independent of odometry updates.
-     * Returns the maximum absolute velocity of all four drive motors (ticks/sec).
+     * DEPRECATED: Use cacheDriveVelocities() + getCachedDriveVelocity() instead.
+     * This method reads directly from motors - expensive hardware call.
      */
     public double getDriveEncoderVelocity() {
         double flVel = Math.abs(frontLeft.getVelocity());
