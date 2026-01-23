@@ -482,7 +482,7 @@ public class Shooter {
          double error = targetTxOffset - tx;
          double derivative = error - lastVisualError;
          lastVisualError = error;
-         if(Math.abs(error) < 0.25) {
+         if(Math.abs(error) < 1.5) {
              turretMotor.setPower(0.0);
              return;
          }
@@ -491,7 +491,7 @@ public class Shooter {
          double dTerm = derivative * getEffectiveVisualKd();
          double ffTerm = turnInput * getEffectiveTurnFf();
          double kfTerm = Math.signum(error) * getEffectiveVisualKf();
-         double power = Math.max(-0.5, Math.min(0.5, pTerm + dTerm + ffTerm + kfTerm));
+         double power = Math.max(-0.75, Math.min(0.75, pTerm + dTerm + ffTerm + kfTerm));
          turretMotor.setPower(power);
     }
     public void pointTurretVisual(boolean isRedAlliance) {
@@ -734,7 +734,9 @@ public class Shooter {
     }
 
     public double getLimelightTx(boolean isRedAlliance) {
-        if (cachedTagId > 0) {
+        if (isRedAlliance && cachedTagId == 24 ) {
+            return cachedTx;
+        }else if(!isRedAlliance && cachedTagId == 20){
             return cachedTx;
         }
         return 0.0;

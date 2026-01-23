@@ -61,6 +61,10 @@ public class MainTeleOp extends LinearOpMode {
     
     // Turret zero
     private boolean lastRightStickButton = false;
+    
+    // Turret turn input smoothing (gradual slowdown)
+    private double smoothedTurretTurnInput = 0.0;
+    private static final double TURRET_INPUT_DECAY_RATE = 0.95;  // Multiplier per loop when stick released (lower = faster decay)
 
     // Feeding timing for transfer power ramp
     private long feedingStartTime = 0;
@@ -203,6 +207,19 @@ public class MainTeleOp extends LinearOpMode {
             }
             lastRightStickButton = rightStickButton;
             
+            // Smooth turret turn input - gradually decay when stick is released
+            if (Math.abs(rotate) > 0.05) {
+                // Stick is active - use raw input directly
+                smoothedTurretTurnInput = rotate;
+            } else {
+                // Stick released - gradually decay the turn input
+                smoothedTurretTurnInput *= TURRET_INPUT_DECAY_RATE;
+                // Stop completely when very small to avoid tiny residual movement
+                if (Math.abs(smoothedTurretTurnInput) < 0.02) {
+                    smoothedTurretTurnInput = 0.0;
+                }
+            }
+            
             // Calculate auto TX offset based on predicted field position
             double fieldX = drive.getPredictedX() / RobotConstants.INCHES_TO_MM;
             double fieldY = drive.getPredictedY() / RobotConstants.INCHES_TO_MM;
@@ -217,7 +234,7 @@ public class MainTeleOp extends LinearOpMode {
                 // Apply Panels-tuned PID values to shooter
                 shooter.setTurretPidOverrides(turretKp, turretVisualKp, turretVisualKd, turretVisualKf, turretTurnFf);
                 
-                shooter.pointTurretAtGoal(isRedAlliance, allowVisualTracking, turretTargetAngle, rotate);
+                shooter.pointTurretAtGoal(isRedAlliance, allowVisualTracking, turretTargetAngle, smoothedTurretTurnInput);
                 // Visual tracking is active if allowed AND correct target is detected
                 usingVisualTracking = allowVisualTracking && hasCorrectTarget;
             }

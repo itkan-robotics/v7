@@ -91,8 +91,8 @@ public class RobotConstants {
     public static final double TURRET_KD = 0.0;
 
     // Visual tracking PD
-    public static final double TURRET_VISUAL_KP = 0.02;
-    public static final double TURRET_VISUAL_KD = 0.0025;
+    public static final double TURRET_VISUAL_KP = 0.0415;
+    public static final double TURRET_VISUAL_KD = 0.008;
     
     // Turret feedforward to counteract base rotation
     public static final double TURRET_TURN_FF = -0.9;
