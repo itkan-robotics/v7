@@ -107,7 +107,7 @@ public class Drive {
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.setOffsets(-12.5, -55, DistanceUnit.MM);  // strafePodX, forwardPodY (matches Constants.java)
         pinpoint.setEncoderResolution(34.311, DistanceUnit.MM);  // matches Constants.java
-        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,
+        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,
                 GoBildaPinpointDriver.EncoderDirection.REVERSED);  // matches Constants.java
     }
 
@@ -214,6 +214,19 @@ public class Drive {
         double blVel = Math.abs(cachedBlVelocity);
         double brVel = Math.abs(cachedBrVelocity);
         return Math.max(Math.max(flVel, frVel), Math.max(blVel, brVel));
+    }
+
+    /**
+     * Calculate heading velocity estimate from cached drive motor velocities.
+     * Uses mecanum kinematics: rotation ∝ (right - left) / 4
+     * Must call cacheDriveVelocities() first each loop.
+     * 
+     * @return Heading velocity in motor ticks/sec (positive = counter-clockwise)
+     */
+    public double getHeadingVelocityFromMotors() {
+        double rightSum = cachedFrVelocity + cachedBrVelocity;
+        double leftSum = cachedFlVelocity + cachedBlVelocity;
+        return (rightSum - leftSum) / 4.0;
     }
 
     public void mecanumDrive(double drive, double strafe, double turn, double speedMultiplier) {

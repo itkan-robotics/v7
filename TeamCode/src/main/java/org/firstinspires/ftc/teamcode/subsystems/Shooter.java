@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -24,8 +25,12 @@ public class Shooter {
 
     // ========== HARDWARE ==========
     private DcMotorEx shooterMotor;
-    private DcMotorEx intakeTransferMotor;  // Single motor for intake and transfer
+    private DcMotorEx intakeMotor;
     private DcMotorEx turretMotor;
+
+    // CR servos for intake assist (coaxial with intake motor)
+    private CRServo intakeServoL;
+    private CRServo intakeServoR;
 
     private Servo blockerServo;
     private Servo climberServo;
@@ -33,32 +38,31 @@ public class Shooter {
     private VoltageSensor voltageSensor;
     private Limelight3A limelight;
 
-    // Reference to drive for odometry-based turret pointing
-
-    // Intake states
-    public enum IntakeState {
-        IDLE,
-        HOLD,
-        INTAKING,
-        OUTTAKING
-    }
-    private IntakeState currentIntakeState = IntakeState.IDLE;
-
     // ========== STATE ==========
     private double lastShooterPower = 0.0;
     private double overrideDefaultTPS = 0.0;
     private boolean lastBlockerState = true;
 
-    // Cached limelight data
-    private LLResult cachedLimelightResult = null;
-    private double cachedTx = 0.0;
-    private double cachedTy = 0.0;
-    private double cachedTa = 0.0;
-    private int cachedTagId = -1;
-    private boolean cachedHasTarget = false;
-    private double cachedTagDistance = 0.0;
+    // ========== LIMELIGHT THREADING ==========
+    private Thread limelightThread;
+    private volatile boolean limelightThreadRunning = false;
+    private volatile boolean isRedAllianceForLimelight = true;
 
-    // Transfer motor timing for 3-ball detection
+    // Cached limelight data (volatile for thread safety)
+    private volatile LLResult cachedLimelightResult = null;
+    private volatile double cachedTx = 0.0;
+    private volatile double cachedTy = 0.0;
+    private volatile double cachedTa = 0.0;
+    private volatile int cachedTagId = -1;
+    private volatile boolean cachedHasTarget = false;
+    private volatile double cachedTagDistance = 0.0;
+    private volatile long lastLimelightUpdateTime = 0;
+    
+    // Stale frame detection using limelight's internal timestamp
+    private volatile double lastLimelightTimestamp = -1;
+    private volatile long lastTimestampChangeTime = 0;
+
+    // Intake motor timing for 3-ball detection
     private long transferStartTime = 0;
     private boolean transferWasRunning = false;
     
@@ -67,12 +71,12 @@ public class Shooter {
     private long lastThreeBallCheckTime = 0;
     private boolean cachedHasThreeBalls = false;
     
-    // Indexer servo (for autonomous compatibility)
-    private Servo indexingServo;
     
     // Turret state
-    private double targetTxOffset = 1.0;
+    private double targetTxOffset = 0.0;
     private double lastVisualError = 0.0;
+    private double smoothedTurnFF = 0.0;  // For turn FF ramp-down
+    private long lastTurretUpdateTime = 0;
     
     // Turret PID override values (for runtime tuning via Panels)
     private Double turretKpOverride = null;
@@ -80,6 +84,10 @@ public class Shooter {
     private Double turretVisualKdOverride = null;
     private Double turretVisualKfOverride = null;
     private Double turretTurnFfOverride = null;
+    private Double turretTurnFfDecayOverride = null;
+    private Double turretVisualDeadbandOverride = null;
+    private Double turretVisualMaxPowerOverride = null;
+    private Double turretLimelightThresholdOverride = null;
     
     // Turret zeroing state machine
     private enum TurretZeroState {
@@ -92,17 +100,8 @@ public class Shooter {
     private static final double TURRET_ZERO_POWER = -0.5;
     private static final long TURRET_ZERO_MIN_TIME_MS = 200;
     private static final double TURRET_ZERO_VELOCITY_THRESHOLD = 5.0;
+    private double turretZeroPowerMultiplier = 1.0;
 
-
-
-    /**
-     * Constructor for autonomous (without Drive reference - turret uses manual angles only)
-     */
-
-
-    /**
-     * Constructor for teleop (with Drive reference for odometry-based turret tracking)
-     */
     public Shooter(HardwareMap hardwareMap) {
 
         // Initialize voltage sensor
@@ -123,22 +122,26 @@ public class Shooter {
         shooterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        // TURRET MOTOR COMMENTED OUT - Controlled directly in TurretMotorTuning to avoid double hardware init
+        // Initialize turret motor
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        // Initialize intake/transfer motor (single motor)
-        intakeTransferMotor = hardwareMap.get(DcMotorEx.class, "transfer_motor");
-        intakeTransferMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        intakeTransferMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        // Initialize intake motor
+        intakeMotor = hardwareMap.get(DcMotorEx.class, "transfer_motor");
+        intakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        
+        // Initialize intake CR servos (coaxial with intake motor)
+        intakeServoL = hardwareMap.get(CRServo.class, "intake_servoL");
+        intakeServoR = hardwareMap.get(CRServo.class, "intake_servoR");
 
-        // Initialize blocker servo
+        // Initialize blocker servo - start in BLOCKED position immediately
         blockerServo = hardwareMap.get(Servo.class, "blocker_servo");
-
-        // TURRET SERVO INITIALIZATION REMOVED - Now using motor instead
+        blockerServo.setPosition(0.35);  // Blocked position (will be updated in initServos for correct robot)
+        lastBlockerState = true;
 
         // Initialize climber servo
         climberServo = hardwareMap.get(Servo.class, "climber_servo");
@@ -147,8 +150,6 @@ public class Shooter {
         lightServo = hardwareMap.get(ServoImplEx.class, "light_servo");
         lightServo.setPwmRange(new PwmControl.PwmRange(500, 2500));
         
-        // Initialize indexer servo
-        indexingServo = hardwareMap.get(Servo.class, "indexing_servo");
     }
 
     /**
@@ -162,14 +163,9 @@ public class Shooter {
      * Initialize all servos to default positions. Call after pinpoint has reset.
      */
     public void initServos() {
-        // TURRET SERVO INITIALIZATION REMOVED - Now using motor instead
-
         blockerServo.setPosition(RobotConstants.getBlockerBlocked());
         lastBlockerState = true;
-
         climberServo.setPosition(RobotConstants.getClimberDown());
-        
-        indexingServo.setPosition(RobotConstants.getIndexerMiddle());
     }
 
     // ========== SHOOTER MOTOR CONTROL ==========
@@ -178,18 +174,24 @@ public class Shooter {
         return Math.abs(shooterMotor.getVelocity());
     }
 
+    /**
+     * Get target shooter TPS.
+     * - If tag visible: use ty-based calculation for distance accuracy
+     * - If no tag: use override if set (bumper presets), otherwise default
+     */
     public double getTargetShooterTPS() {
-        if (!cachedHasTarget) {
-            return (overrideDefaultTPS > 0) ? overrideDefaultTPS : RobotConstants.SHOOTER_DEFAULT_TPS;
+        // If tag visible, always use ty-based calculation for accuracy
+        if (cachedHasTarget) {
+            return calculateTPSFromTy(cachedTy);
         }
-        return getTargetShooterTPS(cachedTy, true);
+        // No tag - use override if set (bumper presets), otherwise default
+        return (overrideDefaultTPS > 0) ? overrideDefaultTPS : RobotConstants.SHOOTER_DEFAULT_TPS;
     }
 
-    public double getTargetShooterTPS(double ty, boolean hasTarget) {
-        if (!hasTarget) {
-            return (overrideDefaultTPS > 0) ? overrideDefaultTPS : RobotConstants.SHOOTER_DEFAULT_TPS;
-        }
-
+    /**
+     * Calculate TPS from ty value using lookup table interpolation.
+     */
+    private double calculateTPSFromTy(double ty) {
         double targetTPS;
 
         double TY_1 = RobotConstants.getLimelightTy1();
@@ -243,18 +245,19 @@ public class Shooter {
     }
 
     public void controlShooter(boolean running) {
-        controlShooter(running, false);
+        controlShooter(running, getShooterTPS(), getTargetShooterTPS());
     }
 
-    public void controlShooter(boolean running, boolean isActivelyFeeding) {
+    /**
+     * Control shooter motor using pre-computed TPS values.
+     * Use this overload to avoid redundant TPS calculations.
+     */
+    public void controlShooter(boolean running, double currentTPS, double targetTPS) {
         if (!running) {
             shooterMotor.setPower(0);
             lastShooterPower = 0.0;
             return;
         }
-
-        double targetTPS = getTargetShooterTPS();
-        double currentTPS = getShooterTPS();
 
         double power = (currentTPS < targetTPS) ? RobotConstants.SHOOTER_MAX_POWER : 0.0;
 
@@ -300,7 +303,6 @@ public class Shooter {
     
     /**
      * Get the current turret motor encoder position.
-     * COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
      */
     public double getTurretEncoderPos() {
          return turretMotor.getCurrentPosition();
@@ -308,11 +310,9 @@ public class Shooter {
     
     /**
      * Set turret motor power directly.
-     * COMMENTED OUT - Turret motor controlled directly in TurretMotorTuning
      */
     public void setTurretPower(double power) {
-        // turretMotor.setPower(power);
-        // Placeholder - turret controlled in TurretMotorTuning
+        turretMotor.setPower(power);
     }
     
     /**
@@ -322,10 +322,77 @@ public class Shooter {
         turretMotor.setPower(0);
     }
     
+    // ========== RUN_TO_POSITION TURRET CONTROL ==========
+    
+    /**
+     * Set turret to RUN_TO_POSITION mode for simpler control.
+     * Call this once during init if using position mode.
+     */
+    public void setTurretRunToPositionMode() {
+        turretMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    }
+    
+    /**
+     * Set turret back to RUN_WITHOUT_ENCODER mode for custom PID control.
+     */
+    public void setTurretRunWithoutEncoderMode() {
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
+    
+    /**
+     * Move turret to target position using RUN_TO_POSITION mode.
+     * @param targetTicks Target position in encoder ticks
+     * @param power Motor power (0.0 to 1.0)
+     */
+    public void setTurretTargetPosition(int targetTicks, double power) {
+        turretMotor.setTargetPosition(targetTicks);
+        turretMotor.setPower(power);
+    }
+    
+    /**
+     * Check if turret has reached its target position (for RUN_TO_POSITION mode).
+     * @param tolerance Tolerance in ticks
+     * @return true if within tolerance of target
+     */
+    public boolean isTurretAtTarget(double tolerance) {
+        int current = turretMotor.getCurrentPosition();
+        int target = turretMotor.getTargetPosition();
+        return Math.abs(current - target) <= tolerance;
+    }
+    
+    /**
+     * Adjust turret target position by visual offset (for RUN_TO_POSITION visual tracking).
+     * Converts TX degrees to ticks and adjusts the target.
+     * @param baseTicks Base target position from odometry
+     * @param txDegrees TX error in degrees (positive = target is to the right)
+     * @param power Motor power
+     */
+    public void setTurretTargetWithVisualOffset(int baseTicks, double txDegrees, double power) {
+        // Convert TX degrees to ticks offset (negative because positive TX means turn right/negative ticks)
+        int txOffsetTicks = (int)(-txDegrees * RobotConstants.TURRET_TICKS_PER_DEGREE);
+        int adjustedTarget = baseTicks + txOffsetTicks;
+        
+        // Clamp to valid range
+        adjustedTarget = Math.max(0, Math.min((int)RobotConstants.TURRET_MAX_TICKS, adjustedTarget));
+        
+        turretMotor.setTargetPosition(adjustedTarget);
+        turretMotor.setPower(power);
+    }
+    
     /**
      * Start the turret zeroing process. Call this once to begin zeroing.
      */
     public void startTurretZero() {
+        startTurretZero(1.0);
+    }
+    
+    /**
+     * Start the turret zeroing process with a custom power multiplier.
+     * @param powerMultiplier multiplier for zero power (e.g., 1.75 for faster zeroing)
+     */
+    public void startTurretZero(double powerMultiplier) {
+        turretZeroPowerMultiplier = powerMultiplier;
         turretZeroState = TurretZeroState.DRIVING_TO_HARDSTOP;
         turretZeroStartTime = System.currentTimeMillis();
     }
@@ -343,7 +410,7 @@ public class Shooter {
                 return true;
                 
             case DRIVING_TO_HARDSTOP:
-                turretMotor.setPower(TURRET_ZERO_POWER);
+                turretMotor.setPower(TURRET_ZERO_POWER * turretZeroPowerMultiplier);
                 
                 long elapsed = System.currentTimeMillis() - turretZeroStartTime;
                 double velocity = Math.abs(turretMotor.getVelocity());
@@ -476,7 +543,154 @@ public class Shooter {
     private double getEffectiveTurnFf() {
         return turretTurnFfOverride != null ? turretTurnFfOverride : RobotConstants.TURRET_TURN_FF;
     }
+    
+    private double getEffectiveTurnFfDecay() {
+        return turretTurnFfDecayOverride != null ? turretTurnFfDecayOverride : RobotConstants.TURRET_TURN_FF_DECAY;
+    }
+    
+    private double getEffectiveVisualDeadband() {
+        return turretVisualDeadbandOverride != null ? turretVisualDeadbandOverride : RobotConstants.TURRET_VISUAL_DEADBAND;
+    }
+    
+    private double getEffectiveVisualMaxPower() {
+        return turretVisualMaxPowerOverride != null ? turretVisualMaxPowerOverride : RobotConstants.TURRET_VISUAL_MAX_POWER;
+    }
+    
+    public double getEffectiveLimelightThreshold() {
+        return turretLimelightThresholdOverride != null ? turretLimelightThresholdOverride : RobotConstants.TURRET_LIMELIGHT_THRESHOLD;
+    }
+    
+    /**
+     * Set all turret tuning overrides at once.
+     */
+    public void setAllTurretOverrides(Double posKp, Double visKp, Double visKd, Double visKf, 
+                                       Double turnFf, Double turnFfDecay, Double visDeadband, 
+                                       Double visMaxPower, Double llThreshold) {
+        turretKpOverride = posKp;
+        turretVisualKpOverride = visKp;
+        turretVisualKdOverride = visKd;
+        turretVisualKfOverride = visKf;
+        turretTurnFfOverride = turnFf;
+        turretTurnFfDecayOverride = turnFfDecay;
+        turretVisualDeadbandOverride = visDeadband;
+        turretVisualMaxPowerOverride = visMaxPower;
+        turretLimelightThresholdOverride = llThreshold;
+    }
+    
+    /**
+     * Reset visual tracking state (call when switching from visual to position tracking)
+     */
+    public void resetVisualTrackingState() {
+        lastVisualError = 0.0;
+    }
+    
+    /**
+     * Get the smoothed turn feedforward value (for telemetry)
+     */
+    public double getSmoothedTurnFF() {
+        return smoothedTurnFF;
+    }
+    
+    /**
+     * Update turn feedforward with smoothing/decay.
+     * Call once per loop BEFORE turret control.
+     * 
+     * @param turnInput Raw turn input from gamepad (-1 to 1)
+     * @param deltaTimeSec Time since last call in seconds
+     */
+    public void updateTurnFF(double turnInput, double deltaTimeSec) {
+        double targetFF = turnInput * getEffectiveTurnFf();
+        double decay = getEffectiveTurnFfDecay();
+        
+        if (decay <= 0) {
+            smoothedTurnFF = targetFF;  // Instant response if decay disabled
+        } else {
+            double maxChange = decay * deltaTimeSec;
+            double ffError = targetFF - smoothedTurnFF;
+            if (Math.abs(ffError) <= maxChange) {
+                smoothedTurnFF = targetFF;
+            } else {
+                smoothedTurnFF += Math.signum(ffError) * maxChange;
+            }
+        }
+    }
+    
+    /**
+     * Combined turret control method - handles both visual and position tracking.
+     * This is the main method to call from OpModes.
+     * 
+     * @param allowVisualTracking True if visual tracking should be used when target visible
+     * @param visualError The current tx error (targetTxOffset - tx)
+     * @param targetTicks Target position in ticks (from odometry calculation)
+     * @return TurretControlResult containing mode used and power applied
+     */
+    public TurretControlResult updateTurretControl(boolean allowVisualTracking, double visualError, double targetTicks) {
+        double currentTicks = turretMotor.getCurrentPosition();
+        double turretPower = 0;
+        double pTerm = 0, dTerm = 0;
+        boolean usingVisual = false;
+        
+        if (allowVisualTracking) {
+            usingVisual = true;
+            double derivative = visualError - lastVisualError;
+            lastVisualError = visualError;
+            
+            if (Math.abs(visualError) < getEffectiveVisualDeadband()) {
+                turretPower = 0;
+            } else {
+                pTerm = visualError * getEffectiveVisualKp();
+                dTerm = derivative * getEffectiveVisualKd();
+                double kfTerm = Math.signum(visualError) * getEffectiveVisualKf();
+                turretPower = pTerm + dTerm + kfTerm + smoothedTurnFF;
+                turretPower = Math.max(-getEffectiveVisualMaxPower(), Math.min(getEffectiveVisualMaxPower(), turretPower));
+            }
+        } else {
+            lastVisualError = 0;
+            double errorTicks = targetTicks - currentTicks;
+            pTerm = errorTicks * getEffectiveTurretKp();
+            turretPower = pTerm + smoothedTurnFF;
+            turretPower = Math.max(-1.0, Math.min(1.0, turretPower));
+        }
+        
+        turretMotor.setPower(turretPower);
+        return new TurretControlResult(usingVisual, turretPower, pTerm, dTerm, smoothedTurnFF, currentTicks);
+    }
+    
+    /**
+     * Result object for turret control - contains useful telemetry data
+     */
+    public static class TurretControlResult {
+        public final boolean usingVisualTracking;
+        public final double power;
+        public final double pTerm;
+        public final double dTerm;
+        public final double ffTerm;
+        public final double currentTicks;
+        
+        public TurretControlResult(boolean usingVisual, double power, double pTerm, double dTerm, double ffTerm, double currentTicks) {
+            this.usingVisualTracking = usingVisual;
+            this.power = power;
+            this.pTerm = pTerm;
+            this.dTerm = dTerm;
+            this.ffTerm = ffTerm;
+            this.currentTicks = currentTicks;
+        }
+    }
 
+    public void pointTurretVisualSimple(boolean isRedAlliance, double turnInput) {
+        double tx = getLimelightTx(isRedAlliance);
+        double error = targetTxOffset - tx;
+        lastVisualError = error;
+        if(Math.abs(error) < 1.5) {
+            turretMotor.setPower(0.0);
+            return;
+        }
+
+        double pTerm = error * getEffectiveVisualKp();
+        double ffTerm = turnInput * getEffectiveTurnFf();
+        double power = Math.max(-0.75, Math.min(0.75, pTerm + ffTerm));
+        turretMotor.setPower(power);
+    }
     public void pointTurretVisual(boolean isRedAlliance, double turnInput) {
          double tx = getLimelightTx(isRedAlliance);
          double error = targetTxOffset - tx;
@@ -531,32 +745,17 @@ public class Shooter {
         turretMotor.setPower(power);
     }
 
-    public void controlShooterManual(double targetTPS, boolean running) {
-        controlShooterManual(targetTPS, running, false);
-    }
-
-    public void controlShooterManual(double targetTPS, boolean running, boolean isActivelyFeeding) {
-        if (!running) {
-            shooterMotor.setPower(0);
-            lastShooterPower = 0.0;
-            return;
-        }
-
-        double currentTPS = getShooterTPS();
-        double effectiveTarget = targetTPS;
-        if (isActivelyFeeding && targetTPS > 1700) {
-            effectiveTarget += 100;
-        }
-
-        double power = (currentTPS < effectiveTarget) ? RobotConstants.SHOOTER_MAX_POWER : 0.0;
-
-        shooterMotor.setPower(power);
-        lastShooterPower = power;
-    }
-
     public void stopShooter() {
         shooterMotor.setPower(0);
         lastShooterPower = 0.0;
+    }
+
+    /**
+     * Set shooter motor power directly.
+     */
+    public void setShooterPower(double power) {
+        shooterMotor.setPower(power);
+        lastShooterPower = power;
     }
 
     public double getShooterPower() {
@@ -627,56 +826,181 @@ public class Shooter {
      * Get power consumption for debugging (backward compatibility)
      */
     public double getPowerConsumption() {
-        double currentAmps = intakeTransferMotor.getCurrent(CurrentUnit.AMPS);
+        double currentAmps = intakeMotor.getCurrent(CurrentUnit.AMPS);
         double voltage = voltageSensor.getVoltage();
         return currentAmps * voltage;
     }
 
-    // ========== TURRET CONTROL ==========
-    // TURRET SERVO CODE REMOVED - Now using motor instead
-    // All turret servo methods have been removed and replaced with placeholder comments
-
     // ========== LIMELIGHT FUNCTIONS ==========
 
-    public void updateLimelightData(boolean isRedAlliance) {
-        cachedLimelightResult = limelight.getLatestResult();
+    /**
+     * Start the background limelight update thread.
+     * Call this once during init after setting alliance.
+     */
+    public void startLimelightThread(boolean isRedAlliance) {
+        isRedAllianceForLimelight = isRedAlliance;
+        limelightThreadRunning = true;
+        
+        limelightThread = new Thread(() -> {
+            while (limelightThreadRunning) {
+                try {
+                    updateLimelightDataInternal();
+                } catch (Exception e) {
+                    // Log error but don't crash - just invalidate cache
+                    cachedHasTarget = false;
+                    cachedTagId = -1;
+                }
+                try {
+                    Thread.sleep(10); // Sleep to prevent CPU thrashing and reduce USB contention
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        });
+        limelightThread.setDaemon(true);
+        limelightThread.setPriority(Thread.MIN_PRIORITY); // Lower priority than main loop
+        limelightThread.start();
+    }
 
-        cachedTx = 0.0;
-        cachedTy = 0.0;
-        cachedTa = 0.0;
-        cachedTagId = -1;
-        cachedHasTarget = false;
-        cachedTagDistance = 0.0;
+    /**
+     * Stop the background limelight thread.
+     * Call this in stop() or when OpMode ends.
+     */
+    public void stopLimelightThread() {
+        limelightThreadRunning = false;
+        if (limelightThread != null) {
+            limelightThread.interrupt();
+            try {
+                limelightThread.join(100);
+            } catch (InterruptedException e) {
+                // Ignore
+            }
+            limelightThread = null;
+        }
+    }
 
-        if (cachedLimelightResult != null && cachedLimelightResult.isValid()) {
-            cachedHasTarget = true;
+    /**
+     * Internal method called by background thread to update limelight data.
+     * Has robust exception handling to prevent thread crashes.
+     */
+    private void updateLimelightDataInternal() {
+        LLResult result;
+        try {
+            result = limelight.getLatestResult();
+        } catch (Exception e) {
+            // USB/communication error - invalidate cache and return
+            cachedHasTarget = false;
+            cachedTagId = -1;
+            return;
+        }
+        
+        if (result == null || !result.isValid()) {
+            cachedHasTarget = false;
+            cachedTagId = -1;
+            return;
+        }
+        
+        try {
+            int targetTagId = isRedAllianceForLimelight ? 24 : 20;
             
-            // Find the specific goal tag for our alliance
-            int targetTagId = isRedAlliance ? 24 : 20;
-            LLResultTypes.FiducialResult goalTag = findTargetTag(targetTagId);
-
+            // Process in local variables first
+            double newTx = 0.0, newTy = 0.0, newTa = 0.0;
+            int newTagId = -1;
+            double newDistance = 0.0;
+            
+            LLResultTypes.FiducialResult goalTag = null;
+            java.util.List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
+            if (fiducials != null) {
+                for (LLResultTypes.FiducialResult fiducial : fiducials) {
+                    if ((int) fiducial.getFiducialId() == targetTagId) {
+                        goalTag = fiducial;
+                        break;
+                    }
+                }
+            }
+            
             if (goalTag != null) {
-                // Use tx/ty from the SPECIFIC goal tag, not the primary result
-                // This ensures we ignore incorrect tags when multiple are visible
-                cachedTagId = (int) goalTag.getFiducialId();
-                cachedTx = goalTag.getTargetXDegrees();
-                cachedTy = goalTag.getTargetYDegrees();
-                cachedTa = goalTag.getTargetArea();
-
+                newTagId = (int) goalTag.getFiducialId();
+                newTx = goalTag.getTargetXDegrees();
+                newTy = goalTag.getTargetYDegrees();
+                newTa = goalTag.getTargetArea();
+                
                 org.firstinspires.ftc.robotcore.external.navigation.Pose3D cameraPose = goalTag.getTargetPoseCameraSpace();
                 if (cameraPose != null) {
                     double x = cameraPose.getPosition().x;
                     double y = cameraPose.getPosition().y;
                     double z = cameraPose.getPosition().z;
-                    cachedTagDistance = Math.sqrt(x * x + y * y + z * z);
+                    newDistance = Math.sqrt(x * x + y * y + z * z);
                 }
             } else {
                 // No correct tag found - use primary result for ty (shooter speed) only
-                // but leave cachedTagId as -1 so visual tracking won't be used
-                cachedTy = cachedLimelightResult.getTy();
-                cachedTa = cachedLimelightResult.getTa();
+                newTy = result.getTy();
+                newTa = result.getTa();
             }
+            
+            // Track if limelight's internal timestamp changed (most reliable stale detection)
+            double newTimestamp = result.getTimestamp();
+            if (Math.abs(newTimestamp - lastLimelightTimestamp) > 0.001) {
+                lastTimestampChangeTime = System.currentTimeMillis();
+                lastLimelightTimestamp = newTimestamp;
+            }
+            
+            // Update cached values (volatile writes are atomic for primitives)
+            cachedLimelightResult = result;
+            cachedTx = newTx;
+            cachedTy = newTy;
+            cachedTa = newTa;
+            cachedTagId = newTagId;
+            cachedTagDistance = newDistance;
+            cachedHasTarget = true;
+            lastLimelightUpdateTime = System.currentTimeMillis();
+        } catch (Exception e) {
+            // Processing error - invalidate cache
+            cachedHasTarget = false;
+            cachedTagId = -1;
         }
+    }
+
+    /**
+     * Get time since last limelight update in ms (for staleness detection)
+     */
+    public long getLimelightAge() {
+        return System.currentTimeMillis() - lastLimelightUpdateTime;
+    }
+    
+    /**
+     * Check if limelight frame is stale (internal timestamp unchanged for >150ms).
+     * This detects frozen frames even when the SDK keeps returning "valid" results.
+     */
+    public boolean isLimelightFrameStale() {
+        if (!cachedHasTarget || cachedTagId == -1) {
+            return false;  // No target, so not "stale" - just no target
+        }
+        long timeSinceChange = System.currentTimeMillis() - lastTimestampChangeTime;
+        return timeSinceChange > 150;  // 150ms threshold
+    }
+    
+    /**
+     * Get time since limelight timestamp actually changed (for debugging)
+     */
+    public long getFrameAge() {
+        return System.currentTimeMillis() - lastTimestampChangeTime;
+    }
+    
+    /**
+     * Get the limelight's internal timestamp (for debugging)
+     */
+    public double getLimelightTimestamp() {
+        return lastLimelightTimestamp;
+    }
+
+    /**
+     * Synchronous limelight update - kept for backward compatibility.
+     * Prefer using startLimelightThread() for better loop times.
+     */
+    public void updateLimelightData(boolean isRedAlliance) {
+        isRedAllianceForLimelight = isRedAlliance;
+        updateLimelightDataInternal();
     }
 
     /**
@@ -767,14 +1091,32 @@ public class Shooter {
         return limelight;
     }
 
-    // ========== INTAKE/TRANSFER CONTROL ==========
+    // ========== INTAKE CONTROL ==========
 
+    // Threshold for CR servo activation (motor can run at low power for holding, but servos shouldn't)
+    private static final double SERVO_POWER_THRESHOLD = 0.5;
+
+    /**
+     * Run the intake system (motor + CR servos).
+     * CR servos are coaxial with the motor, so they always run together.
+     * Servos face opposite directions, so one runs positive and one negative.
+     */
     public void runIntakeSystem(double power) {
-        intakeTransferMotor.setPower(power);
+        intakeMotor.setPower(power);
+        // CR servos only run at higher power levels (not during low-power holding)
+        if (Math.abs(power) >= SERVO_POWER_THRESHOLD) {
+            intakeServoL.setPower(power);
+            intakeServoR.setPower(-power);
+        } else {
+            intakeServoL.setPower(0);
+            intakeServoR.setPower(0);
+        }
     }
 
     public void stopIntakeSystem() {
-        intakeTransferMotor.setPower(0);
+        intakeMotor.setPower(0);
+        intakeServoL.setPower(0);
+        intakeServoR.setPower(0);
     }
 
     public void setIntakePower(double power) {
@@ -784,11 +1126,19 @@ public class Shooter {
         }
         transferWasRunning = isRunning;
 
-        intakeTransferMotor.setPower(power);
+        intakeMotor.setPower(power);
+        // CR servos only run at higher power levels (not during low-power holding)
+        if (Math.abs(power) >= SERVO_POWER_THRESHOLD) {
+            intakeServoL.setPower(power);
+            intakeServoR.setPower(-power);
+        } else {
+            intakeServoL.setPower(0);
+            intakeServoR.setPower(0);
+        }
     }
 
     public void setTransferPower(double power) {
-        setIntakePower(power);  // Same motor now
+        setIntakePower(power);  // Same system
     }
 
     /**
@@ -811,7 +1161,7 @@ public class Shooter {
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastThreeBallCheckTime >= THREE_BALL_CHECK_INTERVAL_MS) {
             lastThreeBallCheckTime = currentTime;
-            double currentAmps = intakeTransferMotor.getCurrent(CurrentUnit.AMPS);
+            double currentAmps = intakeMotor.getCurrent(CurrentUnit.AMPS);
             double voltage = voltageSensor.getVoltage();
             double power = currentAmps * voltage;
             cachedHasThreeBalls = power > RobotConstants.THREE_BALL_POWER_THRESHOLD;
@@ -820,8 +1170,8 @@ public class Shooter {
         return cachedHasThreeBalls;
     }
 
-    public double getTransferCurrent() {
-        return intakeTransferMotor.getCurrent(CurrentUnit.AMPS);
+    public double getIntakeCurrent() {
+        return intakeMotor.getCurrent(CurrentUnit.AMPS);
     }
 
     public double getBatteryVoltage() {
@@ -854,20 +1204,6 @@ public class Shooter {
         setBlocker(false);
     }
 
-    // ========== INDEXER CONTROL ==========
-    
-    public void setIndexerIndexed() {
-        indexingServo.setPosition(RobotConstants.getIndexerIndexed());
-    }
-    
-    public void setIndexerMiddle() {
-        indexingServo.setPosition(RobotConstants.getIndexerMiddle());
-    }
-    
-    public double getIndexerPosition() {
-        return indexingServo.getPosition();
-    }
-
     // ========== CLIMBER CONTROL ==========
 
     public void setClimberDown() {
@@ -879,23 +1215,44 @@ public class Shooter {
     }
 
     // ========== LED CONTROL ==========
-
-    public void updateLightServo(boolean shooterRunning, boolean shooterReady, boolean intakeRunning,
-                                  boolean isShooting, boolean aprilTagVisible, boolean turretOnTarget,
-                                  boolean turretUsingVisualTracking, boolean hasThreeBalls) {
+    
+    /**
+     * Update LED color based on robot state.
+     * 
+     * LED KEY:
+     * - WHITE:  Actively firing (latched and feeding)
+     * - BLUE:   Ready to fire (shooter ready + turret on target + stationary)
+     * - GREEN:  Shooter spinning + turret on target (waiting for speed)
+     * - YELLOW: Visual tracking active (correct AprilTag detected)
+     * - ORANGE: Shooter spinning but turret not aligned
+     * - PURPLE: Intake full (3 balls detected)
+     * - RED:    Idle / not ready
+     */
+    public void updateLightServo(boolean shooterRunning, boolean shooterReady, boolean isStationary,
+                                  boolean shootingLatched, boolean hasCorrectTarget, boolean turretOnTarget,
+                                  boolean usingVisualTracking, boolean hasThreeBalls) {
         double targetColor;
 
-        if (isShooting && shooterReady && turretOnTarget) {
+        if (shootingLatched) {
+            // Actively firing
             targetColor = RobotConstants.LIGHT_WHITE;
-        } else if (turretOnTarget && shooterReady) {
+        } else if (shooterReady && turretOnTarget && isStationary) {
+            // Ready to fire - all conditions met
             targetColor = RobotConstants.LIGHT_BLUE;
-        } else if (hasThreeBalls) {
-            targetColor = RobotConstants.LIGHT_PURPLE;
-        } else if (turretOnTarget && shooterRunning) {
+        } else if (shooterRunning && turretOnTarget) {
+            // Turret aligned, waiting for shooter speed
             targetColor = RobotConstants.LIGHT_GREEN;
-        } else if (aprilTagVisible && turretUsingVisualTracking) {
+        } else if (usingVisualTracking) {
+            // Visual tracking active
             targetColor = RobotConstants.LIGHT_YELLOW;
+        } else if (shooterRunning) {
+            // Shooter spinning but turret not aligned
+            targetColor = RobotConstants.LIGHT_ORANGE;
+        } else if (hasThreeBalls) {
+            // Intake full
+            targetColor = RobotConstants.LIGHT_PURPLE;
         } else {
+            // Idle
             targetColor = RobotConstants.LIGHT_RED;
         }
 
@@ -909,7 +1266,9 @@ public class Shooter {
     // ========== STOP ALL ==========
 
     public void stopAll() {
+        stopLimelightThread();
         stopShooter();
         stopIntakeSystem();
+        stopTurret();
     }
 }

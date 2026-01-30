@@ -14,27 +14,23 @@ import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 @TeleOp(name="MainTeleop1", group="Linear Opmode")
 public class MainTeleOp extends LinearOpMode {
 
-    // ========== TURRET TUNING VALUES (Configurable via Panels) ==========
-    // Position-based turret Kp
-    public static double turretKp = RobotConstants.TURRET_KP;  // 0.04
+    // ==================== TURRET FSM ====================
+    private enum TurretState {
+        ZEROING,           // Turret is finding home position
+        POSITION_TRACKING, // Using odometry to point at goal
+        VISUAL_TRACKING    // Using limelight to fine-tune aim
+    }
+    private TurretState turretState = TurretState.ZEROING;
     
-    // Visual tracking PID
-    public static double turretVisualKp = RobotConstants.TURRET_VISUAL_KP;  // 0.006
-    public static double turretVisualKd = RobotConstants.TURRET_VISUAL_KD;  // 0.006
-    public static double turretVisualKf = RobotConstants.TURRET_VISUAL_KF;  // 0.15
-    
-    // Turn feedforward
-    public static double turretTurnFf = RobotConstants.TURRET_TURN_FF;  // -0.9
-    
+    // Threshold to switch from position to visual tracking
+    private static final double VISUAL_ENGAGE_THRESHOLD = 75.0;
+
     // Panels telemetry manager
     private TelemetryManager panelsTelemetry;
 
     // Subsystems
     private Drive drive;
     private Shooter shooter;
-
-    // Robot selection (21171 or 19564)
-    private int selectedRobot = RobotConstants.ROBOT_19564;
 
     // Alliance tracking
     private boolean isRedAlliance = true;
@@ -43,63 +39,63 @@ public class MainTeleOp extends LinearOpMode {
     private boolean SHOOTING = false;
     private boolean shootingLatched = false;
 
-    // Manual RPM mode
-    private boolean manualRPMMode = false;
-    private double manualTargetTPS = 1350.0;
-    private static final double TPS_INCREMENT = 50.0;
-
     // Climber toggle
     private boolean climberUp = false;
     private boolean lastBackButton = false;
-
-    // Manual TPS tuning
-    private boolean lastDpadUp = false;
-    private boolean lastDpadDown = false;
 
     // Odometry reset
     private boolean lastLeftStickButton = false;
     
     // Turret zero
     private boolean lastRightStickButton = false;
-    
-    // Turret turn input smoothing (gradual slowdown)
-    private double smoothedTurretTurnInput = 0.0;
-    private static final double TURRET_INPUT_DECAY_RATE = 0.95;  // Multiplier per loop when stick released (lower = faster decay)
 
     // Feeding timing for transfer power ramp
     private long feedingStartTime = 0;
     private boolean wasFeeding = false;
     
-    // Sensor update optimization
-    private double cachedTurretError = 999;
-    private static final double LIMELIGHT_UPDATE_ERROR_THRESHOLD = 100.0;
+    // Loop timing for turn FF decay
+    private long lastLoopTime = 0;
     
     // Stationary check for shooting (uses drive encoder velocity, not odometry)
-    private static final double STATIONARY_VELOCITY_THRESHOLD = 100.0;  // ticks/sec from drive encoders
+    private static final double STATIONARY_VELOCITY_THRESHOLD = 100.0;
+    
+    // Turret tolerance for fire sequence
+    private static final double TURRET_FIRE_TOLERANCE = 50.0;
+    
+    // Minimum spin-up time before allowing fire (prevents firing while coasting)
+    private static final long MIN_SPINUP_TIME_MS = 200;
+    private long shooterSpinupStartTime = 0;
+    private boolean wasShootButtonPressed = false;
+    
+    // Minimum time all conditions must be ready before firing
+    private static final long MIN_CONDITIONS_READY_TIME_MS = 30;
+    private long conditionsReadyStartTime = 0;
+    private boolean conditionsWereReady = false;
 
     @Override
     public void runOpMode() {
-        telemetry.setMsTransmissionInterval(50);  // Optimized: 50ms interval saves ~5-10ms per loop
+        telemetry.setMsTransmissionInterval(50);
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
-        // ==================== INITIALIZE HARDWARE FIRST ====================
+        // ==================== INITIALIZE HARDWARE ====================
         RobotConstants.setRobot(RobotConstants.ROBOT_21171);
 
         // Initialize subsystems
         drive = new Drive(hardwareMap);
         shooter = new Shooter(hardwareMap);
 
+        // Initialize odometry
+        drive.updateOdometry();
+
         // Start turret zeroing during init
         shooter.startTurretZero();
+        turretState = TurretState.ZEROING;
 
-        // ==================== ROBOT & ALLIANCE SELECT ====================
+        // ==================== ALLIANCE SELECT ====================
         while (!opModeIsActive() && !isStopRequested()) {
-            // Update turret zeroing during init
             shooter.updateTurretZero();
             
-            telemetry.addData("=== ROBOT SELECT ===", "");
-            telemetry.addLine("Y = 21171  |  A = 19564");
-            telemetry.addData("Robot", selectedRobot);
+            telemetry.addData("=== 21171 LUNAR ROBOT ===", "");
             telemetry.addLine("");
             telemetry.addData("=== ALLIANCE SELECT ===", "");
             telemetry.addLine("B = RED  |  X = BLUE");
@@ -109,39 +105,12 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addData("Pinpoint Status", drive.getPinpointStatus());
             telemetry.addData("Turret Zero", shooter.isTurretZeroComplete() ? "COMPLETE" : "IN PROGRESS...");
             telemetry.addLine("");
-            telemetry.addData("=== TURRET TUNING (Panels) ===", "");
-            telemetry.addData("Pos Kp", "%.4f", turretKp);
-            telemetry.addData("Vis Kp", "%.4f", turretVisualKp);
-            telemetry.addData("Vis Kd", "%.4f", turretVisualKd);
-            telemetry.addData("Vis Kf", "%.4f", turretVisualKf);
-            telemetry.addData("Turn FF", "%.2f", turretTurnFf);
-            telemetry.addLine("");
             telemetry.addData("Status", "Press START when ready");
             telemetry.update();
             panelsTelemetry.update(telemetry);
 
-            // Robot selection
-            if (gamepad1.y) {
-                selectedRobot = RobotConstants.ROBOT_21171;
-            } else if (gamepad1.a) {
-                selectedRobot = RobotConstants.ROBOT_19564;
-            }
-
-            // Alliance selection
-            if (gamepad1.b) {
-                isRedAlliance = true;
-            } else if (gamepad1.x) {
-                isRedAlliance = false;
-            }
-        }
-
-        // Apply the selected robot's constants
-        RobotConstants.setRobot(selectedRobot);
-
-        // If robot changed from default, re-apply hardware settings
-        if (selectedRobot != RobotConstants.ROBOT_21171) {
-            drive.applyPinpointSettings();
-            shooter.applyMotorSettings();
+            if (gamepad1.b) isRedAlliance = true;
+            else if (gamepad1.x) isRedAlliance = false;
         }
 
         // Initialize servos and set alliance
@@ -151,207 +120,231 @@ public class MainTeleOp extends LinearOpMode {
         // Get goal position for turret tracking
         double goalX = isRedAlliance ? RobotConstants.GOAL_RED_X : RobotConstants.GOAL_BLUE_X;
         double goalY = isRedAlliance ? RobotConstants.GOAL_RED_Y : RobotConstants.GOAL_BLUE_Y;
+        int expectedTagId = isRedAlliance ? 24 : 20;
 
         waitForStart();
+        lastLoopTime = System.nanoTime();
+        
+        // Start background limelight thread
+        shooter.startLimelightThread(isRedAlliance);
 
         while (opModeIsActive()) {
-            // ==================== CACHE HARDWARE READS ====================
-            // Cache drive motor velocities once per loop (saves ~6ms by avoiding redundant reads)
-            drive.cacheDriveVelocities();
+            // ==================== LOOP TIMING ====================
+            long loopStart = System.nanoTime();
+            double deltaTimeSec = (loopStart - lastLoopTime) / 1_000_000_000.0;
+            if (deltaTimeSec > 0.1) deltaTimeSec = 0.1;  // Cap for first frame
+            lastLoopTime = loopStart;
             
-            // ==================== SENSORS ====================
-            // Calculate turret error first (uses previous frame's cached values)
+            // ==================== CACHE HARDWARE READS ====================
+            drive.cacheDriveVelocities();
+            double turretCurrentTicks = shooter.getTurretEncoderPos();
+            
+            // ==================== TURRET FSM ====================
+            // Calculate position-based target (always needed for error calculation)
             double turretTargetAngle = drive.calculateTurretAngleToGoal(goalX, goalY);
             double turretTargetTicks = shooter.angleToTurretTicks(turretTargetAngle);
-            double turretCurrentTicks = shooter.getTurretEncoderPos();
-            cachedTurretError = Math.abs(turretTargetTicks - turretCurrentTicks);
+            double turretError = Math.abs(turretTargetTicks - turretCurrentTicks);
             
-            // Update limelight only when turret is close to target
-            // Invalidate cache when not updating to prevent stale visual tracking
-            boolean limelightUpdatedThisFrame = cachedTurretError < LIMELIGHT_UPDATE_ERROR_THRESHOLD;
-            if (limelightUpdatedThisFrame) {
-                shooter.updateLimelightData(isRedAlliance);
-            } else {
-                shooter.invalidateLimelightCache();
+            // Limelight and visual tracking variables
+            boolean hasCorrectTarget = false;
+            double tx = 0.0;
+            double ty = 0.0;
+            double turretPower = 0.0;
+            
+            // Update turn feedforward
+            double rotate = -gamepad1.right_stick_x;
+            shooter.updateTurnFF(rotate, deltaTimeSec);
+            
+            // Manual turret zero request
+            boolean rightStickButton = gamepad1.right_stick_button;
+            if (rightStickButton && !lastRightStickButton) {
+                shooter.resetTurretZeroState();
+                shooter.startTurretZero();
+                turretState = TurretState.ZEROING;
             }
+            lastRightStickButton = rightStickButton;
             
-            // Now read limelight values (fresh or invalidated)
-            boolean hasTarget = shooter.hasLimelightTarget();
-            int detectedTagId = shooter.getDetectedAprilTagId(isRedAlliance);
-            double tx = shooter.getLimelightTx(isRedAlliance);
-            double ty = shooter.getLimelightTy();
-            
-            // Determine if we have the correct alliance tag
-            int expectedTagId = isRedAlliance ? 24 : 20;
-            boolean hasCorrectTarget = hasTarget && (detectedTagId == expectedTagId);
-            
-            // Visual tracking only allowed when limelight is fresh AND has correct target
-            boolean allowVisualTracking = limelightUpdatedThisFrame && hasCorrectTarget;
-            
-            // Only update odometry when NOT using visual tracking
-            if (!hasCorrectTarget) {
-                drive.updateOdometry();
+            // FSM switch statement
+            switch (turretState) {
+                case ZEROING:
+                    // Keep updating zero routine
+                    shooter.updateTurretZero();
+                    
+                    // Transition: zeroing complete → position tracking
+                    if (shooter.isTurretZeroComplete()) {
+                        turretState = TurretState.POSITION_TRACKING;
+                    }
+                    
+                    // Always update odometry while zeroing
+                    drive.updateOdometry();
+                    break;
+                    
+                case POSITION_TRACKING:
+                    // Always update odometry in this state
+                    drive.updateOdometry();
+                    
+                    // Recalculate target with fresh odometry
+                    turretTargetAngle = drive.calculateTurretAngleToGoal(goalX, goalY);
+                    turretTargetTicks = shooter.angleToTurretTicks(turretTargetAngle);
+                    turretError = Math.abs(turretTargetTicks - turretCurrentTicks);
+                    
+                    // Control turret with position-based tracking
+                    Shooter.TurretControlResult posResult = shooter.updateTurretControl(false, 0, turretTargetTicks);
+                    turretPower = posResult.power;
+                    
+                    // Transition check: when close enough, check limelight (from background thread)
+                    if (turretError < VISUAL_ENGAGE_THRESHOLD) {
+                        // Read cached limelight data (updated by background thread)
+                        boolean hasTarget = shooter.hasLimelightTarget();
+                        int detectedTagId = shooter.getDetectedAprilTagId(isRedAlliance);
+                        
+                        if (hasTarget && detectedTagId == expectedTagId) {
+                            turretState = TurretState.VISUAL_TRACKING;
+                        }
+                    }
+                    break;
+                    
+                case VISUAL_TRACKING:
+                    // DO NOT update odometry - freeze it while visual tracking
+                    
+                    // Read cached limelight data (updated by background thread)
+                    boolean hasTarget = shooter.hasLimelightTarget();
+                    int detectedTagId = shooter.getDetectedAprilTagId(isRedAlliance);
+                    tx = shooter.getLimelightTx(isRedAlliance);
+                    ty = shooter.getLimelightTy();
+                    
+                    hasCorrectTarget = hasTarget && (detectedTagId == expectedTagId);
+                    
+                    // Transition check: lost target → back to position tracking
+                    if (!hasCorrectTarget) {
+                        turretState = TurretState.POSITION_TRACKING;
+                        // Update odometry now that we're leaving visual tracking
+                        drive.updateOdometry();
+                        break;
+                    }
+                    
+                    // Control turret with visual tracking (aim for tx = 0)
+                    double visualError = 0.0 - tx;
+                    Shooter.TurretControlResult visResult = shooter.updateTurretControl(true, visualError, turretTargetTicks);
+                    turretPower = visResult.power;
+                    break;
             }
 
             // ==================== DRIVETRAIN ====================
             double driveInput = -gamepad1.left_stick_y;
             double strafe = gamepad1.left_stick_x;
-            double rotate = -gamepad1.right_stick_x;
             drive.mecanumDriveWithBraking(driveInput, strafe, rotate, 1.0);
-
-            // ==================== TURRET ====================
-            boolean rightStickButton = gamepad1.right_stick_button;
-            if (rightStickButton && !lastRightStickButton) {
-                shooter.resetTurretZeroState();
-                shooter.startTurretZero();
-            }
-            lastRightStickButton = rightStickButton;
-            
-            // Smooth turret turn input - gradually decay when stick is released
-            if (Math.abs(rotate) > 0.05) {
-                // Stick is active - use raw input directly
-                smoothedTurretTurnInput = rotate;
-            } else {
-                // Stick released - gradually decay the turn input
-                smoothedTurretTurnInput *= TURRET_INPUT_DECAY_RATE;
-                // Stop completely when very small to avoid tiny residual movement
-                if (Math.abs(smoothedTurretTurnInput) < 0.02) {
-                    smoothedTurretTurnInput = 0.0;
-                }
-            }
-            
-            // Calculate auto TX offset based on predicted field position
-            double fieldX = drive.getPredictedX() / RobotConstants.INCHES_TO_MM;
-            double fieldY = drive.getPredictedY() / RobotConstants.INCHES_TO_MM;
-            double autoTxOffset = calculateTxOffset(fieldX, fieldY);
-            shooter.setTargetTxOffset(autoTxOffset);
-            
-            // Track if we're actually using visual tracking this frame
-            boolean usingVisualTracking = false;
-            if (!shooter.isTurretZeroComplete()) {
-                shooter.updateTurretZero();
-            } else {
-                // Apply Panels-tuned PID values to shooter
-                shooter.setTurretPidOverrides(turretKp, turretVisualKp, turretVisualKd, turretVisualKf, turretTurnFf);
-                
-                shooter.pointTurretAtGoal(isRedAlliance, allowVisualTracking, turretTargetAngle, smoothedTurretTurnInput);
-                // Visual tracking is active if allowed AND correct target is detected
-                usingVisualTracking = allowVisualTracking && hasCorrectTarget;
-            }
-
-            // ==================== SHOOTER ====================
-            // Manual TPS adjustment (Dpad up/down)
-            boolean dpadUp = gamepad1.dpad_up;
-            boolean dpadDown = gamepad1.dpad_down;
-            if (dpadUp && !lastDpadUp) {
-                manualRPMMode = true;
-                manualTargetTPS += TPS_INCREMENT;
-                if (manualTargetTPS > 2500) manualTargetTPS = 2500;
-            }
-            if (dpadDown && !lastDpadDown) {
-                manualRPMMode = true;
-                manualTargetTPS -= TPS_INCREMENT;
-                if (manualTargetTPS < 1000) manualTargetTPS = 1000;
-            }
-            lastDpadUp = dpadUp;
-            lastDpadDown = dpadDown;
-
-            // Get current shooter state
-            double currentTPS = shooter.getShooterTPS();
-            double targetTPS = manualRPMMode ? manualTargetTPS : shooter.getTargetShooterTPS();
-            boolean shooterReady = shooter.isShooterSpeedReady(targetTPS);
-
-            // A button: spin up shooter without shooting
-            if (gamepad1.a) {
-                if (manualRPMMode) {
-                    shooter.controlShooterManual(manualTargetTPS, true);
-                } else {
-                    shooter.controlShooter(true);
-                }
-            }
 
             // ==================== SHOOTING SEQUENCE ====================
             boolean leftBumper = gamepad1.left_bumper;
             boolean rightBumper = gamepad1.right_bumper;
             boolean shootButtonPressed = leftBumper || rightBumper;
 
-            // Preset positions for bumper shots
+            // Track when shoot button was first pressed (for spin-up timing)
+            if (shootButtonPressed && !wasShootButtonPressed) {
+                shooterSpinupStartTime = System.currentTimeMillis();
+            }
+            wasShootButtonPressed = shootButtonPressed;
+            
+            // Check if shooter has had minimum spin-up time
+            long spinupTime = shootButtonPressed ? (System.currentTimeMillis() - shooterSpinupStartTime) : 0;
+            boolean hasMinSpinupTime = spinupTime >= MIN_SPINUP_TIME_MS;
+
+            // Apply TPS override (only used when no tag visible)
             if (leftBumper) {
-//                drive.setPositionOverride(72.0, 30.0);
                 shooter.setDefaultTPSOverride(1750.0);
             } else if (rightBumper) {
-//                drive.setPositionOverride(72.0, 90.0);
                 shooter.setDefaultTPSOverride(1550.0);
             } else {
-//                drive.clearPositionOverride();
                 shooter.clearDefaultTPSOverride();
             }
 
-            // Check if robot is stationary using cached drive velocities (no extra hardware reads)
+            // Get TPS values once for use throughout this loop iteration
+            double currentTPS = shooter.getShooterTPS();
+            double targetTPS = shooter.getTargetShooterTPS();
+            boolean shooterReady = shooter.isShooterSpeedReady(targetTPS);
+            
             double driveEncoderVelocity = drive.getCachedDriveVelocity();
             boolean isStationary = driveEncoderVelocity < STATIONARY_VELOCITY_THRESHOLD;
+            boolean turretOnTarget = turretError < TURRET_FIRE_TOLERANCE;
+
+            // Check all firing conditions
+            boolean allConditionsReady = hasMinSpinupTime && isStationary && shooterReady && turretOnTarget;
             
-            // Shooting latch logic - only latch when stationary
+            // Track how long conditions have been continuously ready
+            if (allConditionsReady && !conditionsWereReady) {
+                conditionsReadyStartTime = System.currentTimeMillis();
+            }
+            if (!allConditionsReady) {
+                conditionsReadyStartTime = 0;
+            }
+            conditionsWereReady = allConditionsReady;
+            
+            long conditionsReadyDuration = allConditionsReady ? (System.currentTimeMillis() - conditionsReadyStartTime) : 0;
+            boolean conditionsReadyLongEnough = conditionsReadyDuration >= MIN_CONDITIONS_READY_TIME_MS;
+
+            // Reset latch when button released
             if (!shootButtonPressed) {
+                // If we were firing (latched), zero turret to counter encoder drift
+                if (shootingLatched) {
+                    shooter.resetTurretZeroState();
+                    shooter.startTurretZero(0.65);  // Faster zeroing during run
+                    turretState = TurretState.ZEROING;
+                }
                 shootingLatched = false;
-            } else if (!shootingLatched && shooterReady && isStationary) {
+            }
+            // Latch when ALL conditions met for required duration (30ms)
+            else if (!shootingLatched && conditionsReadyLongEnough) {
                 shootingLatched = true;
             }
 
-            // Feed balls when shooting
+            // Run shooter and feeding
             boolean feeding = false;
             if (shootButtonPressed) {
-                shooter.setBlocker(false);
-            }
+                // Run shooter motor with pre-computed TPS values
+                shooter.controlShooter(true, currentTPS, targetTPS);
+                SHOOTING = true;
 
-            if (shootButtonPressed && shootingLatched && isStationary) {
-                if (!wasFeeding) {
-                    feedingStartTime = System.currentTimeMillis();
-                }
-                shooter.setIntakePower(-1.0);
-
-                // Reduce transfer power for far shots after initial burst
-                double transferPower = -1.0;
-                if (targetTPS > 1650) {
-                    long feedingDuration = System.currentTimeMillis() - feedingStartTime;
-                    if (feedingDuration >= 250) {
-                        transferPower = -0.65;
+                // Once latched, continue feeding regardless of other conditions
+                if (shootingLatched) {
+                    shooter.setBlocker(false);
+                    if (!wasFeeding) {
+                        feedingStartTime = System.currentTimeMillis();
                     }
+                    
+                    double transferPower = -1.0;
+                    if (targetTPS > 1650) {
+                        long feedingDuration = System.currentTimeMillis() - feedingStartTime;
+                        if (feedingDuration >= 250) {
+                            transferPower = -0.65;
+                        }
+                    }
+                    shooter.setIntakePower(transferPower);
+                    feeding = true;
                 }
-                shooter.setTransferPower(transferPower);
-                feeding = true;
+            } else if (gamepad1.a) {
+                // A button spins up shooter without feeding
+                shooter.controlShooter(true, currentTPS, targetTPS);
+                SHOOTING = true;
+            } else {
+                shooter.controlShooter(false, currentTPS, targetTPS);
+                SHOOTING = false;
             }
             wasFeeding = feeding;
 
-            // Control shooter motor
-            if (shootButtonPressed) {
-                if (manualRPMMode) {
-                    shooter.controlShooterManual(manualTargetTPS, true, feeding);
-                } else {
-                    shooter.controlShooter(true, feeding);
-                }
-                SHOOTING = true;
-            } else if (!gamepad1.a) {
-                shooter.controlShooter(false);
-                SHOOTING = false;
-            }
-
             // ==================== INTAKE ====================
-            // Left trigger: reverse/unjam
             if (gamepad1.left_trigger > 0.1) {
                 shooter.runIntakeSystem(1.0);
                 shooter.setBlocker(true);
                 feeding = true;
             }
 
-            // Right trigger: intake
             if (gamepad1.right_trigger > 0.1) {
                 shooter.runIntakeSystem(-1.0);
                 shooter.setBlocker(true);
                 feeding = true;
             }
 
-            // Default state when not feeding
             if (!feeding) {
                 shooter.setIntakePower(-0.1);
                 if (!shootButtonPressed) {
@@ -360,23 +353,21 @@ public class MainTeleOp extends LinearOpMode {
             }
 
             // ==================== LED ====================
+            // LED KEY: WHITE=firing, BLUE=ready, GREEN=turret aligned, YELLOW=visual tracking,
+            //          ORANGE=spinning/not aligned, PURPLE=3 balls, RED=idle
             boolean hasThreeBalls = shooter.hasThreeBalls();
-            boolean turretOnTarget = cachedTurretError < 50;  // Turret considered on-target if error < 50 ticks
+            boolean usingVisualTracking = (turretState == TurretState.VISUAL_TRACKING);
             shooter.updateLightServo(
-                SHOOTING, shooterReady, feeding,
-                feeding && SHOOTING && shooterReady,
-                hasCorrectTarget, turretOnTarget, usingVisualTracking, hasThreeBalls
+                SHOOTING, shooterReady, isStationary,
+                shootingLatched, hasCorrectTarget, turretOnTarget, usingVisualTracking, hasThreeBalls
             );
 
             // ==================== CLIMBER ====================
             boolean backButton = gamepad1.back;
             if (backButton && !lastBackButton) {
                 climberUp = !climberUp;
-                if (climberUp) {
-                    shooter.setClimberUp();
-                } else {
-                    shooter.setClimberDown();
-                }
+                if (climberUp) shooter.setClimberUp();
+                else shooter.setClimberDown();
             }
             lastBackButton = backButton;
 
@@ -395,103 +386,33 @@ public class MainTeleOp extends LinearOpMode {
                 isRedAlliance ? "RED" : "BLUE",
                 SHOOTING ? "SHOOTING" : "IDLE");
             
-            telemetry.addData("Shooter", "%.0f/%.0f TPS %s %s %s", 
+            telemetry.addData("Shooter", "%.0f/%.0f TPS %s %s", 
                 currentTPS, targetTPS,
                 shooterReady ? "[RDY]" : "",
-                isStationary ? "[STOP]" : "[MOVING]",
-                manualRPMMode ? "[MAN]" : "");
+                isStationary ? "[STOP]" : "[MOVING]");
             
-            String turretMode = shooter.isTurretZeroComplete() ? 
-                (usingVisualTracking ? "[VIS]" : "[POS]") : "[ZEROING]";
-            telemetry.addData("Turret", "%.0f/%.0f err:%.0f pwr:%.3f %s",
-                turretCurrentTicks, turretTargetTicks, cachedTurretError,
-                shooter.getTurretPower(), turretMode);
+            String turretStateStr = turretState.toString();
+            double smoothedFF = shooter.getSmoothedTurnFF();
+            telemetry.addData("Turret", "%.0f/%.0f err:%.0f pwr:%.3f ff:%.3f [%s]",
+                turretCurrentTicks, turretTargetTicks, turretError,
+                turretPower, smoothedFF, turretStateStr);
             
-            telemetry.addData("Limelight", "%s %s %s tx:%.1f ty:%.1f tgt:%.1f",
-                hasTarget ? "TARGET" : "---",
-                hasCorrectTarget ? "[OK]" : "",
-                limelightUpdatedThisFrame ? "" : "[STALE]",
-                tx, ty, autoTxOffset);
-            
-            // Debug: show all detected tags and compare primary vs goal tag tx
-            // If turret is tracking wrong tag, tx and pri_tx will be same when they should differ
-            double visualError = shooter.getTargetTxOffset() - tx;
-            telemetry.addData("Tags", "all:[%s] using:%d exp:%d",
-                shooter.getAllDetectedTagIds(),
-                detectedTagId,
-                expectedTagId);
-            telemetry.addData("TxDbg", "goal:%.1f pri:%.1f err:%.2f %s",
-                tx,
-                shooter.getPrimaryTx(),
-                visualError,
-                usingVisualTracking ? "VIS" : "POS");
+            telemetry.addData("Limelight", "%s tx:%.1f ty:%.1f",
+                hasCorrectTarget ? "[OK]" : "---",
+                tx, ty);
             
             telemetry.addData("Odom", "X:%.1f Y:%.1f H:%.1f %s",
                 drive.getOdometryX() / 25.4, 
                 drive.getOdometryY() / 25.4,
                 drive.getOdometryHeading(),
-                hasCorrectTarget ? "[FROZEN]" : "");
-            
-            telemetry.addLine("");
-            telemetry.addData("=== TURRET TUNING (Panels) ===", "");
-            telemetry.addData("Pos Kp", "%.4f", turretKp);
-            telemetry.addData("Vis Kp", "%.4f", turretVisualKp);
-            telemetry.addData("Vis Kd", "%.4f", turretVisualKd);
-            telemetry.addData("Vis Kf", "%.4f", turretVisualKf);
-            telemetry.addData("Turn FF", "%.2f", turretTurnFf);
+                (turretState == TurretState.VISUAL_TRACKING) ? "[FROZEN]" : "");
 
             telemetry.update();
             panelsTelemetry.update(telemetry);
         }
-        // Stop everything
+        
         drive.stopMotors();
         shooter.stopAll();
     }
     
-    /**
-     * Calculate the optimal TX offset based on field position.
-     * Near goal (high Y): positive offset (8-9 degrees in center)
-     * Mid-field: zero offset
-     * Far from goal (low Y): negative offset (up to -2 degrees)
-     * 
-     * @param fieldX Robot X position in inches
-     * @param fieldY Robot Y position in inches
-     * @return Optimal TX offset in degrees
-     */
-    private double calculateTxOffset(double fieldX, double fieldY) {
-        double txOffset = 0.0;
-
-        if (fieldY >= 130) {
-            // Near goal baseline (Y ~144-146)
-            // Offset varies by X: around 8-9 for center, 0 for edges
-            if (fieldX >= 50 && fieldX <= 100) {
-                // Center area - interpolate between data points
-                // FX:64 → 9.4, FX:89 → 8.4
-                double t = (fieldX - 64) / (89 - 64);
-                txOffset = 9.4 + t * (8.4 - 9.4);  // 9.4 to 8.4
-            } else if (fieldX < 50) {
-                // Left side - fade to 0
-                double t = fieldX / 50.0;
-                txOffset = t * 9.4;  // 0 to 9.4
-            } else {
-                // Right side (X > 100) - fade to 0
-                double t = (fieldX - 100) / 30.0;
-                t = Math.min(1.0, t);
-                txOffset = 8.4 * (1.0 - t);  // 8.4 to 0
-            }
-        } else if (fieldY >= 80) {
-            // Mid-field (Y ~84-99) - offset is 0
-            txOffset = 0.0;
-        } else if (fieldY >= 30) {
-            // Far from goal (Y ~35-80) - negative offset
-            // Interpolate from 0 at Y=80 to -2 at Y=35
-            double t = (80 - fieldY) / (80 - 35);
-            txOffset = -2.0 * t;
-        } else {
-            // Very far - use max negative
-            txOffset = -2.0;
-        }
-
-        return txOffset;
-    }
 }

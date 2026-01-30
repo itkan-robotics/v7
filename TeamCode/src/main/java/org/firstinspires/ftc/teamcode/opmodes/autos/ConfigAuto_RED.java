@@ -95,7 +95,6 @@ public class ConfigAuto_RED extends LinearOpMode {
 
         limelight = new Limelight(hardwareMap);
         shooter = new Shooter(hardwareMap);
-        shooter.setIndexerMiddle();
 
         // Initialize Pedro Pathing follower directly
         follower = Constants.createFollower(hardwareMap);
@@ -366,7 +365,6 @@ public class ConfigAuto_RED extends LinearOpMode {
                 // StartToShot: Go to first shooting position
                 // TURRET SERVO CODE REMOVED - Now using motor instead
                 shooter.pointTurretByPosition(-45);
-                shooter.setIndexerMiddle();
                 shooterRunning = true;
                 follower.followPath(paths.StartToShot, true);
                 pathTimer.reset();

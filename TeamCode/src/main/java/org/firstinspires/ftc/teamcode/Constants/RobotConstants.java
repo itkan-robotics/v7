@@ -4,8 +4,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 /**
- * Centralized robot-specific constants for both 21171 and 19564 robots.
- * Select the robot at runtime to use the correct constants.
+ * Robot constants for 21171 lunar robot.
  */
 public class RobotConstants {
     
@@ -13,8 +12,8 @@ public class RobotConstants {
     public static final int ROBOT_21171 = 21171;
     public static final int ROBOT_19564 = 19564;
     
-    // Current robot selection (set during init)
-    private static int currentRobot = ROBOT_19564;
+    // Current robot selection - 21171 lunar robot
+    private static int currentRobot = ROBOT_21171;
     
     public static void setRobot(int robotId) {
         currentRobot = robotId;
@@ -53,9 +52,7 @@ public class RobotConstants {
     public static final double FIELD_CENTER_Y_INCHES = 72;
     
     public static GoBildaPinpointDriver.EncoderDirection getEncoderDirectionX() {
-        return is21171() 
-            ? GoBildaPinpointDriver.EncoderDirection.REVERSED 
-            : GoBildaPinpointDriver.EncoderDirection.FORWARD;
+        return GoBildaPinpointDriver.EncoderDirection.FORWARD;
     }
     
     public static GoBildaPinpointDriver.EncoderDirection getEncoderDirectionY() {
@@ -82,54 +79,25 @@ public class RobotConstants {
     public static final double TURRET_MIN_TICKS = 0;          // Corresponds to 5°
     public static final double TURRET_MAX_TICKS = 373;  // Corresponds to 355°
     
-    // Turret PID constants
-    //public static final double TURRET_KP = 0.002;
-
-    public static final double TURRET_KP = 0.035; //0.05
-
+    // Turret position PID constants
+    public static final double TURRET_KP = 0.03;
     public static final double TURRET_KI = 0.0;
     public static final double TURRET_KD = 0.0;
 
-    // Visual tracking PD
-    public static final double TURRET_VISUAL_KP = 0.0415;
-    public static final double TURRET_VISUAL_KD = 0.008;
+    // Visual tracking PD (tuned values for 21171 lunar)
+    public static final double TURRET_VISUAL_KP = 0.01;
+    public static final double TURRET_VISUAL_KD = 0.0002;
+    public static final double TURRET_VISUAL_KF = 0.0;
+    public static final double TURRET_VISUAL_DEADBAND = 0.65;  // degrees
+    public static final double TURRET_VISUAL_MAX_POWER = 0.6;
     
-    // Turret feedforward to counteract base rotation
-    public static final double TURRET_TURN_FF = -0.9;
-    public static final double TURRET_VISUAL_KF = 0; //0.05
+    // Turret feedforward to counteract base rotation (for gamepad input [-1,1])
+    public static final double TURRET_TURN_FF = -0.5;
+    public static final double TURRET_TURN_FF_DECAY = 3.0;  // units/sec ramp rate
     
-    // Legacy turret servo constants (for reference)
-    public static double getTurretHeadingSign() {
-        return 1.0;  // Same for both robots
-    }
+    // Limelight update threshold (only update when turret error < this many ticks)
+    public static final double TURRET_LIMELIGHT_THRESHOLD = 50.0;
     
-    public static double getTurretFieldOffset() {
-        return 0.0;  // Same for both robots
-    }
-    
-    public static boolean hasDualTurretServos() {
-        return false;  // Both robots use motor turret now
-    }
-    
-    public static double getTurretKpFar() {
-        return 0.0001;
-    }
-    
-    public static double getTurretKpClose() {
-        return 0.00015;
-    }
-    
-    public static double getTurretToleranceClose() {
-        return 5.0;
-    }
-    
-    public static double getTurretToleranceCloseDist() {
-        return 40.0;
-    }
-    
-    public static boolean hasFarShotTxOffset() {
-        return is21171();
-    }
     
     // ========== PINPOINT ODOMETRY OFFSETS ==========
     
@@ -185,9 +153,9 @@ public class RobotConstants {
         return is21171() ? -4.8 : -1.8;
     }
     
-    public static double getShooterTps1() { return 1350.0; }  // Same for both
-    public static double getShooterTps2() { return 1450.0; }  // Same for both
-    public static double getShooterTps3() { return 1500.0; }  // Same for both
+    public static double getShooterTps1() { return 1350.0; }
+    public static double getShooterTps2() { return 1450.0; }
+    public static double getShooterTps3() { return 1500.0; }
     
     public static double getShooterTps4() {
         return is21171() ? 1750.0 : 1600.0;
@@ -197,7 +165,7 @@ public class RobotConstants {
         return is21171() ? 1800.0 : 1750.0;
     }
     
-    public static double getShooterTps6() { return 1800.0; }  // Same for both
+    public static double getShooterTps6() { return 1800.0; }
     
     // ========== INTAKE CONSTANTS ==========
     public static final double INTAKE_POWER = 1.0;
@@ -211,23 +179,11 @@ public class RobotConstants {
     // ========== BLOCKER CONSTANTS ==========
     
     public static double getBlockerBlocked() {
-        return is21171() ? 0.35 : 0.3;
+        return 0.3;
     }
     
     public static double getBlockerUnblocked() {
         return is21171() ? 0.65 : 0.55;
-    }
-    
-    // ========== INDEXER CONSTANTS ==========
-    public static final double INDEXER_INDEXED = 0.05;
-    public static final double INDEXER_MIDDLE = 0.55;
-    
-    public static double getIndexerIndexed() {
-        return is21171() ? 0.45 : 0.05;
-    }
-    
-    public static double getIndexerMiddle() {
-        return is21171() ? 0.925 : 0.55;
     }
     
     // ========== CLIMBER CONSTANTS ==========
