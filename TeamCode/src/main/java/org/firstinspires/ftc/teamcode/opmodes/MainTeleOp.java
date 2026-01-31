@@ -417,7 +417,7 @@ public class MainTeleOp extends LinearOpMode {
 
             if (!feeding) {
                 // Passive intake: motor only at 0.2 power, no servos
-                shooter.runPassiveIntake(0.2);
+                shooter.runPassiveIntake(-0.2);
                 if (!shootButtonPressed) {
                     shooter.setBlocker(true);
                 }
