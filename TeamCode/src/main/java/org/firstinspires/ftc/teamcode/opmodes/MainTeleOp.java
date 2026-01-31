@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
-import static org.firstinspires.ftc.teamcode.opmodes.TurretTuning.shooter;
-
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -220,8 +218,8 @@ public class MainTeleOp extends LinearOpMode {
                     // Recalculate target with fresh odometry
                     turretTargetAngle = drive.calculateTurretAngleToGoal(goalX, goalY);
                     turretTargetTicks = shooter.angleToTurretTicks(turretTargetAngle);
-                    turretError = Math.abs(turretTargetTicks - turretCurrentTicks);
-                    
+
+
                     // Control turret with position-based tracking
                     Shooter.TurretControlResult posResult = shooter.updateTurretControl(false, 0, turretTargetTicks);
                     turretPower = posResult.power;
@@ -323,6 +321,11 @@ public class MainTeleOp extends LinearOpMode {
             // Reset latch when button released
             if (!shootButtonPressed) {
                 // If we were firing (latched), zero turret to counter encoder drift
+                if (shootingLatched) {
+                    shooter.resetTurretZeroState();
+                    shooter.startTurretZero(0.65);  // Faster zeroing during run
+                    turretState = TurretState.ZEROING;
+                }
                 shootingLatched = false;
             }
             // Latch when ALL conditions met for required duration (30ms)

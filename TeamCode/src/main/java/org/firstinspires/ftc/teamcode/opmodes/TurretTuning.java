@@ -33,7 +33,7 @@ import java.util.List;
 @Configurable
 @TeleOp(name = "Turret Tuning", group = "Tuning")
 public class TurretTuning extends SelectableOpMode {
-    
+
     // Shared hardware
     @IgnoreConfigurable
     public static Drive drive;
@@ -43,7 +43,7 @@ public class TurretTuning extends SelectableOpMode {
     public static DcMotorEx turretMotor;
     @IgnoreConfigurable
     static TelemetryManager telemetryM;
-    
+
     // Shared state
     @IgnoreConfigurable
     public static boolean isRedAlliance = true;
@@ -51,11 +51,11 @@ public class TurretTuning extends SelectableOpMode {
     public static double goalX;
     @IgnoreConfigurable
     public static double goalY;
-    
+
     // ========== TUNING PARAMETERS (Configurable via Panels) ==========
     // Position-based tracking
     public static double posKp = RobotConstants.TURRET_KP;
-    
+
     // Visual tracking (tuned values now in RobotConstants)
     public static double visualKp = RobotConstants.TURRET_VISUAL_KP;
     public static double visualKd = RobotConstants.TURRET_VISUAL_KD;
@@ -63,11 +63,11 @@ public class TurretTuning extends SelectableOpMode {
     public static double visualDeadband = RobotConstants.TURRET_VISUAL_DEADBAND;
     public static double visualMaxPower = RobotConstants.TURRET_VISUAL_MAX_POWER;
     public static double targetTxOffset = 0.0;
-    
+
     // Turn feedforward (tuned values now in RobotConstants)
     public static double turnFF = RobotConstants.TURRET_TURN_FF;
     public static double turnFFDecay = RobotConstants.TURRET_TURN_FF_DECAY;
-    
+
     // Combined mode threshold (tuned value now in RobotConstants)
     public static double limelightThreshold = RobotConstants.TURRET_LIMELIGHT_THRESHOLD;
 
@@ -86,24 +86,24 @@ public class TurretTuning extends SelectableOpMode {
         drive = new Drive(hardwareMap);
         shooter = new Shooter(hardwareMap);
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
-        
+
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
-        
+
         // Initialize odometry - must call update to populate cached values
         drive.updateOdometry();
-        
+
         // Set alliance and goal
         drive.setAlliance(isRedAlliance);
         goalX = isRedAlliance ? RobotConstants.GOAL_RED_X : RobotConstants.GOAL_BLUE_X;
         goalY = isRedAlliance ? RobotConstants.GOAL_RED_Y : RobotConstants.GOAL_BLUE_Y;
-        
+
         // Start turret zeroing
         shooter.startTurretZero();
     }
 
     @Override
     public void onLog(List<String> lines) {}
-    
+
     // Helper to update alliance selection
     public static void updateAlliance(boolean red) {
         isRedAlliance = red;
@@ -121,19 +121,19 @@ class OdometryTest extends OpMode {
     private long turretZeroStartTime = 0;
     private double smoothedTurnFF = 0.0;  // For turn FF ramp-down
     private long lastLoopTime = 0;
-    
+
     @Override
     public void init() {
         shooter.startTurretZero();
     }
-    
+
     @Override
     public void init_loop() {
         shooter.updateTurretZero();
-        
+
         if (gamepad1.b) TurretTuning.updateAlliance(true);
         if (gamepad1.x) TurretTuning.updateAlliance(false);
-        
+
         telemetryM.debug("=== ODOMETRY TURRET TEST ===");
         telemetryM.debug("Position-based tracking (NO Limelight)");
         telemetryM.debug("");
@@ -147,12 +147,12 @@ class OdometryTest extends OpMode {
         telemetryM.debug("LStick Btn = Reset Odom | RStick Btn = Zero Turret");
         telemetryM.update(telemetry);
     }
-    
+
     @Override
     public void start() {
         lastLoopTime = System.nanoTime();
     }
-    
+
     @Override
     public void loop() {
         long loopStart = System.nanoTime();
@@ -160,10 +160,10 @@ class OdometryTest extends OpMode {
         if (deltaTimeSec > 0.1) deltaTimeSec = 0.1;  // Cap at 100ms to handle first frame
         double loopTimeMs = (loopStart - lastLoopTime) / 1_000_000.0;
         lastLoopTime = loopStart;
-        
+
         // Update odometry
         drive.updateOdometry();
-        
+
         // Button handling
         boolean leftStickButton = gamepad1.left_stick_button;
         if (leftStickButton && !lastLeftStickButton) {
@@ -172,7 +172,7 @@ class OdometryTest extends OpMode {
             drive.setOdometryPosition(fieldCenterX, fieldCenterY, -90);
         }
         lastLeftStickButton = leftStickButton;
-        
+
         boolean rightStickButton = gamepad1.right_stick_button;
         if (rightStickButton && !lastRightStickButton && !turretZeroing) {
             turretZeroing = true;
@@ -181,13 +181,13 @@ class OdometryTest extends OpMode {
             shooter.startTurretZero();
         }
         lastRightStickButton = rightStickButton;
-        
+
         // Drivetrain
         double driveInput = -gamepad1.left_stick_y;
         double strafeInput = gamepad1.left_stick_x;
         double turnInput = -gamepad1.right_stick_x;
         drive.mecanumDrive(driveInput, strafeInput, turnInput, 1.0);
-        
+
         // Turn FF smoothing - ramp towards target value
         double targetFF = turnInput * TurretTuning.turnFF;
         if (TurretTuning.turnFFDecay <= 0) {
@@ -201,13 +201,13 @@ class OdometryTest extends OpMode {
                 smoothedTurnFF += Math.signum(ffError) * maxChange;
             }
         }
-        
+
         // Turret control
         double targetAngle = drive.calculateTurretAngleToGoal(goalX, goalY);
         double targetTicks = shooter.angleToTurretTicks(targetAngle);
         double currentTicks = turretMotor.getCurrentPosition();
         double errorTicks = targetTicks - currentTicks;
-        
+
         double turretPower = 0;
         if (turretZeroing || !shooter.isTurretZeroComplete()) {
             shooter.updateTurretZero();
@@ -218,7 +218,7 @@ class OdometryTest extends OpMode {
             // Use safe power method with hardstop protection
             turretPower = shooter.setTurretPowerSafe(turretPower);
         }
-        
+
         // Telemetry
         telemetryM.debug("=== ODOMETRY ===");
         telemetryM.debug("X: " + String.format("%.1f", drive.getOdometryX() / 25.4) + " in");
@@ -244,19 +244,19 @@ class VisualTest extends OpMode {
     private double lastVisualError = 0.0;
     private double smoothedTurnFF = 0.0;
     private long lastLoopTime = 0;
-    
+
     @Override
     public void init() {
         shooter.startTurretZero();
     }
-    
+
     @Override
     public void init_loop() {
         shooter.updateTurretZero();
-        
+
         if (gamepad1.b) TurretTuning.updateAlliance(true);
         if (gamepad1.x) TurretTuning.updateAlliance(false);
-        
+
         telemetryM.debug("=== VISUAL TURRET TEST ===");
         telemetryM.debug("Limelight-based tracking (PD control)");
         telemetryM.debug("");
@@ -272,12 +272,12 @@ class VisualTest extends OpMode {
         telemetryM.debug("RStick Btn = Zero Turret");
         telemetryM.update(telemetry);
     }
-    
+
     @Override
     public void start() {
         lastLoopTime = System.nanoTime();
     }
-    
+
     @Override
     public void loop() {
         long loopStart = System.nanoTime();
@@ -285,7 +285,7 @@ class VisualTest extends OpMode {
         if (deltaTimeSec > 0.1) deltaTimeSec = 0.1;
         double loopTimeMs = (loopStart - lastLoopTime) / 1_000_000.0;
         lastLoopTime = loopStart;
-        
+
         // Limelight update
         shooter.updateLimelightData(isRedAlliance);
         double tx = shooter.getLimelightTx(isRedAlliance);
@@ -294,7 +294,7 @@ class VisualTest extends OpMode {
         boolean hasTarget = shooter.hasLimelightTarget();
         int expectedTagId = isRedAlliance ? 24 : 20;
         boolean hasCorrectTarget = hasTarget && (detectedTagId == expectedTagId);
-        
+
         // Button handling
         boolean rightStickButton = gamepad1.right_stick_button;
         if (rightStickButton && !lastRightStickButton && !turretZeroing) {
@@ -303,13 +303,13 @@ class VisualTest extends OpMode {
             shooter.startTurretZero();
         }
         lastRightStickButton = rightStickButton;
-        
+
         // Drivetrain
         double driveInput = -gamepad1.left_stick_y;
         double strafeInput = gamepad1.left_stick_x;
         double turnInput = -gamepad1.right_stick_x;
         drive.mecanumDrive(driveInput, strafeInput, turnInput, 1.0);
-        
+
         // Turn FF smoothing
         double targetFF = turnInput * TurretTuning.turnFF;
         if (TurretTuning.turnFFDecay <= 0) {
@@ -323,19 +323,19 @@ class VisualTest extends OpMode {
                 smoothedTurnFF += Math.signum(ffError) * maxChange;
             }
         }
-        
+
         // Turret control
         double turretPower = 0;
         double pTerm = 0, dTerm = 0;
         double visualError = TurretTuning.targetTxOffset - tx;
-        
+
         if (turretZeroing || !shooter.isTurretZeroComplete()) {
             shooter.updateTurretZero();
             if (shooter.isTurretZeroComplete()) turretZeroing = false;
         } else if (hasCorrectTarget) {
             double derivative = visualError - lastVisualError;
             lastVisualError = visualError;
-            
+
             if (Math.abs(visualError) < TurretTuning.visualDeadband) {
                 turretPower = 0;
             } else {
@@ -379,19 +379,19 @@ class CombinedTest extends OpMode {
     private double cachedTurretError = 999;
     private double smoothedTurnFF = 0.0;  // For turn FF ramp-down
     private long lastLoopTime = 0;
-    
+
     @Override
     public void init() {
         shooter.startTurretZero();
     }
-    
+
     @Override
     public void init_loop() {
         shooter.updateTurretZero();
-        
+
         if (gamepad1.b) TurretTuning.updateAlliance(true);
         if (gamepad1.x) TurretTuning.updateAlliance(false);
-        
+
         telemetryM.debug("=== COMBINED TURRET TEST ===");
         telemetryM.debug("Full odometry + visual tracking logic");
         telemetryM.debug("");
@@ -407,13 +407,13 @@ class CombinedTest extends OpMode {
         telemetryM.debug("LStick Btn = Reset Odom | RStick Btn = Zero Turret");
         telemetryM.update(telemetry);
     }
-    
+
     @Override
     public void start() {
         lastLoopTime = System.nanoTime();
         shooter.setTargetTxOffset(TurretTuning.targetTxOffset);
     }
-    
+
     @Override
     public void loop() {
         long loopStart = System.nanoTime();
@@ -421,17 +421,17 @@ class CombinedTest extends OpMode {
         if (deltaTimeSec > 0.1) deltaTimeSec = 0.1;  // Cap at 100ms to handle first frame
         double loopTimeMs = (loopStart - lastLoopTime) / 1_000_000.0;
         lastLoopTime = loopStart;
-        
+
         // Cache drive velocities (for braking and stationary check)
         drive.cacheDriveVelocities();
-        
+
         // Update limelight first to determine if we should freeze odometry
         // Calculate preliminary turret error using cached odometry values
         double prelimTurretAngle = drive.calculateTurretAngleToGoal(goalX, goalY);
         double prelimTurretTicks = shooter.angleToTurretTicks(prelimTurretAngle);
         double turretCurrentTicks = turretMotor.getCurrentPosition();
         cachedTurretError = Math.abs(prelimTurretTicks - turretCurrentTicks);
-        
+
         // Conditional limelight update (only when turret is close to target)
         boolean limelightUpdated = cachedTurretError < TurretTuning.limelightThreshold;
         if (limelightUpdated) {
@@ -439,25 +439,25 @@ class CombinedTest extends OpMode {
         } else {
             shooter.invalidateLimelightCache();
         }
-        
+
         boolean hasTarget = shooter.hasLimelightTarget();
         int detectedTagId = shooter.getDetectedAprilTagId(isRedAlliance);
         double tx = shooter.getLimelightTx(isRedAlliance);
         int expectedTagId = isRedAlliance ? 24 : 20;
         boolean hasCorrectTarget = hasTarget && (detectedTagId == expectedTagId);
         boolean allowVisualTracking = limelightUpdated && hasCorrectTarget;
-        
+
         // Update odometry BEFORE turret calculation (unless visual tracking is active)
         // This ensures turret uses fresh position data
         if (!hasCorrectTarget) {
             drive.updateOdometry();
         }
-        
+
         // Now calculate final turret target with updated odometry
         double turretTargetAngle = drive.calculateTurretAngleToGoal(goalX, goalY);
         double turretTargetTicks = shooter.angleToTurretTicks(turretTargetAngle);
         cachedTurretError = Math.abs(turretTargetTicks - turretCurrentTicks);
-        
+
         // Button handling
         boolean leftStickButton = gamepad1.left_stick_button;
         if (leftStickButton && !lastLeftStickButton) {
@@ -466,20 +466,20 @@ class CombinedTest extends OpMode {
             drive.setOdometryPosition(fieldCenterX, fieldCenterY, -90);
         }
         lastLeftStickButton = leftStickButton;
-        
+
         boolean rightStickButton = gamepad1.right_stick_button;
         if (rightStickButton && !lastRightStickButton) {
             shooter.resetTurretZeroState();
             shooter.startTurretZero();
         }
         lastRightStickButton = rightStickButton;
-        
+
         // Drivetrain
         double driveInput = -gamepad1.left_stick_y;
         double strafe = gamepad1.left_stick_x;
         double rotate = -gamepad1.right_stick_x;
         drive.mecanumDriveWithBraking(driveInput, strafe, rotate, 1.0);
-        
+
         // Turn FF smoothing - ramp towards target value
         double targetFF = rotate * TurretTuning.turnFF;
         if (TurretTuning.turnFFDecay <= 0) {
@@ -493,20 +493,20 @@ class CombinedTest extends OpMode {
                 smoothedTurnFF += Math.signum(ffError) * maxChange;
             }
         }
-        
+
         // Turret control
         double turretPower = 0;
         double pTerm = 0, dTerm = 0, ffTerm = smoothedTurnFF;
         double visualError = TurretTuning.targetTxOffset - tx;
         boolean usingVisual = false;
-        
+
         if (!shooter.isTurretZeroComplete()) {
             shooter.updateTurretZero();
         } else if (allowVisualTracking) {
             usingVisual = true;
             double derivative = visualError - lastVisualError;
             lastVisualError = visualError;
-            
+
             if (Math.abs(visualError) < TurretTuning.visualDeadband) {
                 turretPower = 0;
             } else {
@@ -527,7 +527,7 @@ class CombinedTest extends OpMode {
             // Use safe power method with hardstop protection
             turretPower = shooter.setTurretPowerSafe(turretPower);
         }
-        
+
         // Telemetry
         String mode = shooter.isTurretZeroComplete() ? (usingVisual ? "VISUAL" : "POSITION") : "ZEROING";
         telemetryM.debug("Mode: " + mode + " | Alliance: " + (isRedAlliance ? "RED" : "BLUE"));

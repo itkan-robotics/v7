@@ -345,6 +345,27 @@ public class ConfigAuto_RED extends LinearOpMode {
             return RobotConstants.DEFAULT_TARGET_SHOOTER_VELOCITY;
         }
     }
+    public double calculateTurretAngleToGoalAuto() {
+        double heading = follower.getHeading();
+        double x = follower.getPose().getX();
+        double y = follower.getPose().getY();
+
+        // Calculate delta from robot center to goal
+        double deltaX = 138.0 * 24 - x - RobotConstants.TURRET_CENTER_OFFSET * Math.cos(heading);
+        double deltaY = 143.5 * 24 - y - RobotConstants.TURRET_CENTER_OFFSET * Math.sin(heading);
+
+        // Field angle from robot to goal (0° = positive X axis, increases counter-clockwise)
+        double fieldAngleToGoal = Math.toDegrees(Math.atan2(deltaY, deltaX));
+
+        // Turret angle = angle to goal relative to robot's front (intake direction)
+        double turretAngle = fieldAngleToGoal - heading; // add 90 to convert robot angle to turret angle
+
+        // Normalize to 0-360 range
+        while (turretAngle < 0) turretAngle += 360;
+        while (turretAngle >= 360) turretAngle -= 360;
+
+        return turretAngle;
+    }
 
     // TURRET SERVO CODE REMOVED - Now using motor instead
     // TODO: Implement turret motor auto-align using PID
@@ -366,13 +387,14 @@ public class ConfigAuto_RED extends LinearOpMode {
             case StartToShoot:
                 // StartToShot: Go to first shooting position
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                shooter.pointTurretByPosition(-45);
+                shooter.angleToTurretTicks(45);
                 shooterRunning = true;
                 follower.followPath(paths.StartToShot, true);
                 pathTimer.reset();
                 break;
             case Shooting:
                 // Shoot at position 1
+                shooter.angleToTurretTicks(calculateTurretAngleToGoalAuto());
                 shooter.stopIntakeSystem();
                 shooter.unblockShooter();
                 targetShooterVelocity = updateTargetShooterVelocity();
@@ -400,7 +422,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             case GoToShooting2:
                 // Tape2ToShoot2: Return to shooting position 2
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                shooter.pointTurretByPosition(-45);
+
                 shooterRunning = true;
                 follower.followPath(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
@@ -425,8 +447,6 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === THIRD SHOT ===
             case ShootLever:
                 // LeverToShoot3: Set turret to -75, stop intake, turn on shooter
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-                 shooter.pointTurretByPosition(-45);
                 shooterRunning = true;
                 follower.followPath(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -445,8 +465,6 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === SIXTH SHOT (from tape 1) ===
             case Tape1Shoot:
                 // tape1ToShoot4: Go to shooting position
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-                shooter.pointTurretByPosition(-45);
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 follower.followPath(paths.tape1ToShoot4, true);
@@ -466,9 +484,6 @@ public class ConfigAuto_RED extends LinearOpMode {
 
             // === FINAL SHOT ===
             case CornerToShoot:
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-                shooter.pointTurretByPosition(-45);
-
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
@@ -490,7 +505,6 @@ public class ConfigAuto_RED extends LinearOpMode {
 
             case SuicideToShoot:
                 // TURRET SERVO CODE REMOVED - Now using motor instead
-                shooter.pointTurretByPosition(-45);
                 // CornertoShoot5: Return to final shooting position
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
