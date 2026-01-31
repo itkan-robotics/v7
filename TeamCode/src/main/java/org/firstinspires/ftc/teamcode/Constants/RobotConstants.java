@@ -66,13 +66,15 @@ public class RobotConstants {
     // ========== TURRET MOTOR CONSTANTS ==========
     // Turret motor ticks per full rotation (depends on motor + gearing)
     public static final double TURRET_TICKS_PER_REV = 998;
-    public static final double TURRET_TICKS_PER_DEGREE = (TURRET_TICKS_PER_REV) / 355.0;
     
-    // Turret hardstop deadzone: usable range is 5° to 355° (350° total rotation)
-    // 0 ticks corresponds to 5°, max ticks corresponds to 355°
+    // Turret hardstop deadzone: usable range is 7.5° to 352.5° (345° total rotation)
+    // 0 ticks corresponds to 7.5°, max ticks corresponds to 352.5°
     public static final double TURRET_MIN_ANGLE = 7.5;        // Angle at 0 ticks (hardstop)
     public static final double TURRET_MAX_ANGLE = 352.5;      // Angle at max ticks (hardstop)
-    public static final double TURRET_ANGLE_RANGE = TURRET_MAX_ANGLE - TURRET_MIN_ANGLE;  // 350°
+    public static final double TURRET_ANGLE_RANGE = TURRET_MAX_ANGLE - TURRET_MIN_ANGLE;  // 345°
+    
+    // IMPORTANT: Use actual angle range (345°) not 355° - this was causing ~3% error
+    public static final double TURRET_TICKS_PER_DEGREE = TURRET_TICKS_PER_REV / TURRET_ANGLE_RANGE;
     public static final double TURRET_CENTER_OFFSET = 2.5 * INCHES_TO_MM;
     
     // Turret range limits (in ticks)
@@ -90,10 +92,10 @@ public class RobotConstants {
     public static final double TURRET_KD = 0.0;
 
     // Visual tracking PD (need tuning for 19564 solar)
-    public static final double TURRET_VISUAL_KP = 0.03; //0.03
-    public static final double TURRET_VISUAL_KD = 0.035; //0.00012
+    public static final double TURRET_VISUAL_KP = 0.015; //0.03
+    public static final double TURRET_VISUAL_KD = 0.0005; //0.00012
 
-    public static final double TURRET_VISUAL_KF = 0.0;
+    public static final double TURRET_VISUAL_KF = 0.06;
     public static final double TURRET_VISUAL_DEADBAND = 0.65;  // degrees
     public static final double TURRET_VISUAL_MAX_POWER = 0.6;
     
@@ -160,18 +162,18 @@ public class RobotConstants {
     }
     
     public static double getShooterTps1() { return 1350.0; }
-    public static double getShooterTps2() { return 1450.0; }
-    public static double getShooterTps3() { return 1500.0; }
+    public static double getShooterTps2() { return 1500.0; }
+    public static double getShooterTps3() { return 1575.0; }
     
     public static double getShooterTps4() {
-        return is21171() ? 1750.0 : 1600.0;
+        return is21171() ? 1800.0 : 1650.0;
     }
     
     public static double getShooterTps5() {
-        return is21171() ? 1800.0 : 1750.0;
+        return is21171() ? 1850.0 : 1800.0;
     }
     
-    public static double getShooterTps6() { return 1800.0; }
+    public static double getShooterTps6() { return 1850.0; }
     
     // ========== INTAKE CONSTANTS ==========
     public static final double INTAKE_POWER = 1.0;

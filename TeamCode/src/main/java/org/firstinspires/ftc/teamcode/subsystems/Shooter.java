@@ -835,7 +835,7 @@ public class Shooter {
      * Check if intake is full (backward compatibility)
      */
     public boolean issintakeFull() {
-        return getPowerConsumption() > 75;
+        return getPowerConsumption() > 45;
     }
     
     /**
@@ -1171,6 +1171,17 @@ public class Shooter {
 
     public void setTransferPower(double power) {
         setIntakePower(power);  // Same system
+    }
+    
+    /**
+     * Run passive intake - motor only at low power, no servos.
+     * Used for constant gentle intake when not actively feeding.
+     * @param power Motor power (typically 0.2)
+     */
+    public void runPassiveIntake(double power) {
+        intakeMotor.setPower(power);
+        intakeServoL.setPower(0);
+        intakeServoR.setPower(0);
     }
 
     /**

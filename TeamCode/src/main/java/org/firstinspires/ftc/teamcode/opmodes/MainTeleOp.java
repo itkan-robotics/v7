@@ -81,12 +81,12 @@ public class MainTeleOp extends LinearOpMode {
     private static final double TURRET_FIRE_TOLERANCE = 50.0;
     
     // Minimum spin-up time before allowing fire (prevents firing while coasting)
-    private static final long MIN_SPINUP_TIME_MS = 200;
+    private static final long MIN_SPINUP_TIME_MS = 100;  // Halved from 200
     private long shooterSpinupStartTime = 0;
     private boolean wasShootButtonPressed = false;
     
     // Minimum time all conditions must be ready before firing
-    private static final long MIN_CONDITIONS_READY_TIME_MS = 30;
+    private static final long MIN_CONDITIONS_READY_TIME_MS = 15;  // Halved from 30
     private long conditionsReadyStartTime = 0;
     private boolean conditionsWereReady = false;
 
@@ -199,6 +199,16 @@ public class MainTeleOp extends LinearOpMode {
             // FSM switch statement
             switch (turretState) {
                 case ZEROING:
+                    // Allow shoot button to interrupt zeroing so robot can fire if needed
+                    boolean shootInterrupt = gamepad1.left_bumper || gamepad1.right_bumper;
+                    if (shootInterrupt) {
+                        // Cancel zeroing and go to position tracking
+                        shooter.resetTurretZeroState();
+                        turretState = TurretState.POSITION_TRACKING;
+                        drive.updateOdometry();
+                        break;
+                    }
+                    
                     // Keep updating zero routine
                     shooter.updateTurretZero();
                     
@@ -266,7 +276,7 @@ public class MainTeleOp extends LinearOpMode {
             // ==================== DRIVETRAIN ====================
             double driveInput = -gamepad1.left_stick_y;
             double strafe = gamepad1.left_stick_x;
-            drive.mecanumDrive(driveInput, strafe, rotate, 1.0);
+            drive.mecanumDriveWithBraking(driveInput, strafe, rotate, 1.0);
 
             // ==================== SHOOTING SEQUENCE ====================
             boolean leftBumper = gamepad1.left_bumper;
@@ -323,7 +333,7 @@ public class MainTeleOp extends LinearOpMode {
                 // If we were firing (latched), zero turret to counter encoder drift
                 if (shootingLatched) {
                     shooter.resetTurretZeroState();
-                    shooter.startTurretZero(0.65);  // Faster zeroing during run
+                    shooter.startTurretZero(1.0);  // Faster zeroing during run
                     turretState = TurretState.ZEROING;
                 }
                 shootingLatched = false;
@@ -381,7 +391,8 @@ public class MainTeleOp extends LinearOpMode {
             }
 
             if (!feeding) {
-                shooter.setIntakePower(-0.1);
+                // Passive intake: motor only at 0.2 power, no servos
+                shooter.runPassiveIntake(0.2);
                 if (!shootButtonPressed) {
                     shooter.setBlocker(true);
                 }

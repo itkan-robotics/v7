@@ -56,6 +56,9 @@ public class ConfigAuto_RED extends LinearOpMode {
     private boolean shooterRunning = false;
     private boolean shooting = false; // Track if shooting sequence has started
 
+    // Turret target angle - must be updated continuously with P-control
+    private double targetTurretAngle = 315;  // Default angle for RED
+
     // AprilTag ID detected during init (21, 22, or 23)
     private int detectedTagId = 21;
 
@@ -110,9 +113,12 @@ public class ConfigAuto_RED extends LinearOpMode {
 
         limelight.start();
         limelight.switchPipeline(0);
-        shooter.blockShooter(); // Start with blocker closed
+        
+        // Start shooter's limelight thread for visual tracking (RED alliance)
+        shooter.startLimelightThread(true);
 
         // === INIT LOOP - Configure settings ===
+        // NOTE: Do not move any hardware during init - turret assumed in correct starting position
         boolean lastDpadUp = false;
         boolean lastDpadDown = false;
         boolean lastDpadLeft = false;
@@ -120,7 +126,7 @@ public class ConfigAuto_RED extends LinearOpMode {
 
         while (!isStarted() && !isStopRequested()) {
             limelight.update();
-            shooter.blockShooter();
+            // NOTE: Do not move hardware during init loop
 
             // Suicide toggle
             if (gamepad1.left_bumper) {
@@ -159,23 +165,53 @@ public class ConfigAuto_RED extends LinearOpMode {
             panelsTelemetry.update(telemetry);
         }
 
+        // === INIT SERVOS RIGHT AFTER START ===
+        shooter.initServos();
+        shooter.blockShooter();
+        
         IntakeTimer = new ElapsedTime();
+        ElapsedTime telemetryTimer = new ElapsedTime();  // Throttle telemetry updates
         setPathState(State.StartToShoot);
+        
         // === MAIN LOOP ===
         while (opModeIsActive()) {
-            follower.update(); // Update Pedro Pathing
-            //limelight.update(); // Update Limelight
-            autonomousPathUpdate(); // Update autonomous state machine
+            // CRITICAL: follower.update() must run as fast as possible
+            follower.update();
+            
+            // State machine update (includes turret control)
+            autonomousPathUpdate();
 
-            // Update shooter target velocity from limelight
-//            targetShooterVelocity = updateTargetShooterVelocity();
-            telemetry.addData("limelight tx:  ", limelight.getTx());
-            telemetry.addData("Actual Speed of Shooter", shooter.getShooterVelocity());
-            telemetry.addData("Target Speed of Shooter", targetShooterVelocity);
+            // Update shooter motor (bang-bang control)
             shooter.updateShooter(shooterRunning, targetShooterVelocity);
+            
+            // === THROTTLED OPERATIONS (every 100ms) ===
+            // These are slow and don't need to run every loop
+            if (telemetryTimer.milliseconds() > 100) {
+                telemetryTimer.reset();
+                
+                // LED CONTROL (calls expensive hasThreeBalls)
+                boolean shooterReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= RobotConstants.VELOCITY_TOLERANCE;
+                shooter.updateLightServo(
+                    shooterRunning,
+                    shooterReady,
+                    !follower.isBusy(),
+                    !shooting && atShot,
+                    shooter.getDetectedAprilTagId(true) == 24,
+                    shooter.isTurretAligned(true),
+                    state == State.Shooting,
+                    shooter.hasThreeBalls()
+                );
 
-            panelsTelemetry.update(telemetry);
+                // Telemetry (very slow - only update periodically)
+                telemetry.addData("State", state);
+                telemetry.addData("Turret Angle", targetTurretAngle);
+                telemetry.addData("Shooter TPS", shooter.getShooterVelocity());
+                telemetry.update();
+            }
         }
+        
+        // Cleanup
+        shooter.stopAll();
     }
 
 
@@ -334,17 +370,6 @@ public class ConfigAuto_RED extends LinearOpMode {
         }
     }
 
-    /**
-     * Update target shooter velocity from limelight
-     * @return Target velocity in ticks per second
-     */
-    private double updateTargetShooterVelocity() {
-        if (limelight.hasTarget()) {
-            return limelight.getTargetShooterTPS();
-        } else {
-            return RobotConstants.DEFAULT_TARGET_SHOOTER_VELOCITY;
-        }
-    }
     public double calculateTurretAngleToGoalAuto() {
         double heading = follower.getHeading();
         double x = follower.getPose().getX();
@@ -386,23 +411,20 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === FIRST SHOT ===
             case StartToShoot:
                 // StartToShot: Go to first shooting position
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-                shooter.angleToTurretTicks(45);
+                // Calculated: pos(95,88), heading -109°, goal(138,143.5) → turret 161°
+                targetTurretAngle = 161;
                 shooterRunning = true;
                 follower.followPath(paths.StartToShot, true);
                 pathTimer.reset();
                 break;
             case Shooting:
-                // Shoot at position 1
-                shooter.angleToTurretTicks(calculateTurretAngleToGoalAuto());
+                // Shoot - switch to visual tracking for fine alignment
                 shooter.stopIntakeSystem();
                 shooter.unblockShooter();
-                targetShooterVelocity = updateTargetShooterVelocity();
                 shooting = true;
                 shootTimer.reset();
                 alignTimer.reset();
                 atShot = false;
-
                 break;
             // === TO TAPE 2 ===
             case ToTape2:
@@ -411,7 +433,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                 shooterRunning = false;
                 follower.followPath(paths.Shoot1ToTape2, true);
                 pathTimer.reset();
-                shooter.runIntakeSystem(RobotConstants.INTAKE_POWER);
+                shooter.runIntakeSystem(-RobotConstants.INTAKE_POWER);  // Negative for intake
                 break;
             case IntakeTimerReset:
                 // Wait for intake at tape 2
@@ -421,8 +443,8 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === SECOND SHOT ===
             case GoToShooting2:
                 // Tape2ToShoot2: Return to shooting position 2
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-
+                // Calculated: pos(86,74), heading -23°, goal(138,143.5) → turret 76°
+                targetTurretAngle = 76;
                 shooterRunning = true;
                 follower.followPath(paths.Tape2ToSHoot2, true);
                 pathTimer.reset();
@@ -434,7 +456,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                 // Shoot2ToLever: Close blocker, turn off shooter, run intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                shooter.runIntakeSystem(RobotConstants.INTAKE_POWER);
+                shooter.runIntakeSystem(-RobotConstants.INTAKE_POWER);  // Negative for intake
                 follower.followPath(paths.Shoot2ToLever, true);
                 pathTimer.reset();
                 break;
@@ -446,7 +468,9 @@ public class ConfigAuto_RED extends LinearOpMode {
 
             // === THIRD SHOT ===
             case ShootLever:
-                // LeverToShoot3: Set turret to -75, stop intake, turn on shooter
+                // LeverToShoot3: Return from lever to shooting position
+                // Calculated: pos(86,74), heading -10°, goal(138,143.5) → turret 64°
+                targetTurretAngle = 64;
                 shooterRunning = true;
                 follower.followPath(paths.LeverToShoot3, true);
                 pathTimer.reset();
@@ -457,14 +481,16 @@ public class ConfigAuto_RED extends LinearOpMode {
                 // Shoot3ToTape1: Go to tape 1 with intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                shooter.runIntakeSystem(RobotConstants.INTAKE_POWER);
+                shooter.runIntakeSystem(-RobotConstants.INTAKE_POWER);  // Negative for intake
                 follower.followPath(paths.Shoot3ToTape1, true);
                 pathTimer.reset();
                 break;
 
-            // === SIXTH SHOT (from tape 1) ===
+            // === FOURTH SHOT (from tape 1) ===
             case Tape1Shoot:
                 // tape1ToShoot4: Go to shooting position
+                // Calculated: pos(98,85), heading -2°, goal(138,143.5) → turret 58°
+                targetTurretAngle = 58;
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 follower.followPath(paths.tape1ToShoot4, true);
@@ -476,15 +502,17 @@ public class ConfigAuto_RED extends LinearOpMode {
                 // Shoot4toCorner: Go to corner with intake
                 shooter.blockShooter();
                 shooterRunning = false;
-                shooter.runIntakeSystem(RobotConstants.INTAKE_POWER);
+                shooter.runIntakeSystem(-RobotConstants.INTAKE_POWER);  // Negative for intake
                 follower.followPath(paths.Shoot4toCorner, true);
                 pathTimer.reset();
                 break;
 
 
-            // === FINAL SHOT ===
+            // === FIFTH SHOT (from corner) ===
             case CornerToShoot:
                 // CornertoShoot5: Return to final shooting position
+                // Calculated: pos(86.5,73.5), heading -41°, goal(138,143.5) → turret 95°
+                targetTurretAngle = 95;
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 follower.followPath(paths.CornertoShoot5, true);
@@ -498,14 +526,15 @@ public class ConfigAuto_RED extends LinearOpMode {
             case Suicide:
                 shooter.blockShooter();
                 shooterRunning = false;
-                shooter.runIntakeSystem(1);
+                shooter.runIntakeSystem(-1);  // Negative for intake
                 follower.followPath(paths.Suicide, true);
                 pathTimer.reset();
                 break;
 
             case SuicideToShoot:
-                // TURRET SERVO CODE REMOVED - Now using motor instead
-                // CornertoShoot5: Return to final shooting position
+                // Return to shooting position from suicide
+                // Calculated: pos(87,75), heading -52°, goal(138,143.5) → turret 106°
+                targetTurretAngle = 106;
                 shooter.stopIntakeSystem();
                 shooterRunning = true;
                 follower.followPath(paths.SuicideToShoot, true);
@@ -523,6 +552,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === FIRST SHOT ===
             case StartToShoot:
                 // Following StartToShot to first shooting position
+                shooter.pointTurretByPosition(targetTurretAngle);
                 if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     nextState = State.ToTape2;
@@ -541,6 +571,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === SECOND SHOT ===
             case GoToShooting2:
                 // Following Tape2ToShoot2
+                shooter.pointTurretByPosition(targetTurretAngle);
                 if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     nextState = State.ToLever;
@@ -566,6 +597,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === THIRD SHOT ===
             case ShootLever:
                 // Following LeverToShoot3
+                shooter.pointTurretByPosition(targetTurretAngle);
                 if(pathTimer.seconds() > 0.5) {
                     shooter.stopIntakeSystem();
                 }
@@ -599,6 +631,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === SIXTH SHOT (from tape 1) ===
             case Tape1Shoot:
                 // Following tape1ToShoot4
+                shooter.pointTurretByPosition(targetTurretAngle);
                 if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     if(suicide){
@@ -609,26 +642,25 @@ public class ConfigAuto_RED extends LinearOpMode {
                 }
                 break;
             case Shooting:
-                // Shoot at position 6
+                // At shot position - use visual tracking
+                shooter.pointTurretVisual(true);  // true = RED alliance
                 if(!atShot) {
                     if(!follower.isBusy()) {
                         atShot = true;
+                        // Get target velocity once when robot stops at shot point
+                        targetShooterVelocity = shooter.getTargetShooterTPS();
                         shooter.stopIntakeSystem();
                         shooter.unblockShooter();
-                        //  targetShooterVelocity = updateTargetShooterVelocity();
                     }
                 } else {
-//                    targetShooterVelocity = updateTargetShooterVelocity();
                     if(shooting) {
-                        limelight.update();
-                        shooter.pointTurretVisual(true);
-                        boolean isAligned = limelight.isAlignedForShooting();
+                        boolean isAligned = shooter.isTurretAligned(true);  // true = RED alliance
                         boolean timedOut = alignTimer.seconds() >= ALIGN_TIMEOUT;
                         boolean shooterSpeedReady = Math.abs(shooter.getShooterVelocity() - targetShooterVelocity) <= RobotConstants.VELOCITY_TOLERANCE;
 
                         if(shooterSpeedReady && (isAligned || timedOut)) {
                             shooter.unblockShooter();
-                            shooter.runIntakeSystem(RobotConstants.INTAKE_POWER - 0.1);
+                            shooter.runIntakeSystem(-(RobotConstants.INTAKE_POWER - 0.1));  // Negative to feed balls
                             shootTimer.reset();
                             shooting = false;
                         }
@@ -655,6 +687,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             // === FINAL SHOT ===
             case CornerToShoot:
                 // Following CornertoShoot5
+                shooter.pointTurretByPosition(targetTurretAngle);
                 if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     nextState = State.End;
@@ -668,6 +701,7 @@ public class ConfigAuto_RED extends LinearOpMode {
                 break;
 
             case SuicideToShoot:
+                shooter.pointTurretByPosition(targetTurretAngle);
                 if (!follower.isBusy()) {
                     setPathState(State.Shooting);
                     nextState = State.End;
