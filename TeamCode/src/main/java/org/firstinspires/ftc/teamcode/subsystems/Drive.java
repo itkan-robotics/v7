@@ -107,8 +107,8 @@ public class Drive {
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.setOffsets(-12.5, -55, DistanceUnit.MM);  // strafePodX, forwardPodY (matches Constants.java)
         pinpoint.setEncoderResolution(34.311, DistanceUnit.MM);  // matches Constants.java
-        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,
-                GoBildaPinpointDriver.EncoderDirection.REVERSED);  // matches Constants.java
+        pinpoint.setEncoderDirections(RobotConstants.getEncoderDirectionX(),
+                RobotConstants.getEncoderDirectionY());  // matches Constants.java
     }
 
     /**

@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import static org.firstinspires.ftc.teamcode.opmodes.TurretTuning.shooter;
+
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -13,6 +15,24 @@ import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 @Configurable
 @TeleOp(name="MainTeleop1", group="Linear Opmode")
 public class MainTeleOp extends LinearOpMode {
+
+    // ==================== TURRET PID TUNING (Panels) ====================
+    // Position-based turret control
+    public static double turretKp = RobotConstants.TURRET_KP;  // 0.05
+    
+    // Visual tracking PID
+    public static double turretVisualKp = RobotConstants.TURRET_VISUAL_KP;  // 0.02
+    public static double turretVisualKd = RobotConstants.TURRET_VISUAL_KD;  // 0.05
+    public static double turretVisualKf = RobotConstants.TURRET_VISUAL_KF;  // 0.0
+    public static double turretVisualDeadband = RobotConstants.TURRET_VISUAL_DEADBAND;  // 0.65
+    public static double turretVisualMaxPower = RobotConstants.TURRET_VISUAL_MAX_POWER;  // 0.6
+    
+    // Turn feedforward
+    public static double turretTurnFf = RobotConstants.TURRET_TURN_FF;  // -0.5
+    public static double turretTurnFfDecay = RobotConstants.TURRET_TURN_FF_DECAY;  // 3.0
+    
+    // Limelight engage threshold
+    public static double turretLimelightThreshold = RobotConstants.TURRET_LIMELIGHT_THRESHOLD;  // 50.0
 
     // ==================== TURRET FSM ====================
     private enum TurretState {
@@ -78,7 +98,7 @@ public class MainTeleOp extends LinearOpMode {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // ==================== INITIALIZE HARDWARE ====================
-        RobotConstants.setRobot(RobotConstants.ROBOT_21171);
+        RobotConstants.setRobot(RobotConstants.ROBOT_19564);
 
         // Initialize subsystems
         drive = new Drive(hardwareMap);
@@ -95,7 +115,7 @@ public class MainTeleOp extends LinearOpMode {
         while (!opModeIsActive() && !isStopRequested()) {
             shooter.updateTurretZero();
             
-            telemetry.addData("=== 21171 LUNAR ROBOT ===", "");
+            telemetry.addData("=== 19564 SOLAR ROBOT ===", "");
             telemetry.addLine("");
             telemetry.addData("=== ALLIANCE SELECT ===", "");
             telemetry.addLine("B = RED  |  X = BLUE");
@@ -104,6 +124,13 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addLine("");
             telemetry.addData("Pinpoint Status", drive.getPinpointStatus());
             telemetry.addData("Turret Zero", shooter.isTurretZeroComplete() ? "COMPLETE" : "IN PROGRESS...");
+            telemetry.addLine("");
+            telemetry.addData("=== TURRET PID (Panels) ===", "");
+            telemetry.addData("Pos Kp", "%.4f", turretKp);
+            telemetry.addData("Vis Kp/Kd/Kf", "%.4f / %.4f / %.4f", turretVisualKp, turretVisualKd, turretVisualKf);
+            telemetry.addData("Vis Deadband/MaxPwr", "%.2f / %.2f", turretVisualDeadband, turretVisualMaxPower);
+            telemetry.addData("Turn FF/Decay", "%.2f / %.2f", turretTurnFf, turretTurnFfDecay);
+            telemetry.addData("LL Threshold", "%.1f", turretLimelightThreshold);
             telemetry.addLine("");
             telemetry.addData("Status", "Press START when ready");
             telemetry.update();
@@ -138,6 +165,13 @@ public class MainTeleOp extends LinearOpMode {
             // ==================== CACHE HARDWARE READS ====================
             drive.cacheDriveVelocities();
             double turretCurrentTicks = shooter.getTurretEncoderPos();
+            
+            // ==================== APPLY TURRET PID OVERRIDES (from Panels) ====================
+            shooter.setAllTurretOverrides(
+                turretKp, turretVisualKp, turretVisualKd, turretVisualKf,
+                turretTurnFf, turretTurnFfDecay, turretVisualDeadband,
+                turretVisualMaxPower, turretLimelightThreshold
+            );
             
             // ==================== TURRET FSM ====================
             // Calculate position-based target (always needed for error calculation)
@@ -206,7 +240,8 @@ public class MainTeleOp extends LinearOpMode {
                     
                 case VISUAL_TRACKING:
                     // DO NOT update odometry - freeze it while visual tracking
-                    
+                    drive.updateOdometry();
+
                     // Read cached limelight data (updated by background thread)
                     boolean hasTarget = shooter.hasLimelightTarget();
                     int detectedTagId = shooter.getDetectedAprilTagId(isRedAlliance);
@@ -233,7 +268,7 @@ public class MainTeleOp extends LinearOpMode {
             // ==================== DRIVETRAIN ====================
             double driveInput = -gamepad1.left_stick_y;
             double strafe = gamepad1.left_stick_x;
-            drive.mecanumDriveWithBraking(driveInput, strafe, rotate, 1.0);
+            drive.mecanumDrive(driveInput, strafe, rotate, 1.0);
 
             // ==================== SHOOTING SEQUENCE ====================
             boolean leftBumper = gamepad1.left_bumper;
@@ -253,8 +288,10 @@ public class MainTeleOp extends LinearOpMode {
             // Apply TPS override (only used when no tag visible)
             if (leftBumper) {
                 shooter.setDefaultTPSOverride(1750.0);
+                shooter.setTargetTxOffset(-2);
             } else if (rightBumper) {
                 shooter.setDefaultTPSOverride(1550.0);
+                shooter.setTargetTxOffset(0);
             } else {
                 shooter.clearDefaultTPSOverride();
             }
@@ -263,11 +300,11 @@ public class MainTeleOp extends LinearOpMode {
             double currentTPS = shooter.getShooterTPS();
             double targetTPS = shooter.getTargetShooterTPS();
             boolean shooterReady = shooter.isShooterSpeedReady(targetTPS);
+
             
             double driveEncoderVelocity = drive.getCachedDriveVelocity();
             boolean isStationary = driveEncoderVelocity < STATIONARY_VELOCITY_THRESHOLD;
-            boolean turretOnTarget = turretError < TURRET_FIRE_TOLERANCE;
-
+            boolean turretOnTarget = shooter.isTurretAligned(isRedAlliance);
             // Check all firing conditions
             boolean allConditionsReady = hasMinSpinupTime && isStationary && shooterReady && turretOnTarget;
             
@@ -286,11 +323,6 @@ public class MainTeleOp extends LinearOpMode {
             // Reset latch when button released
             if (!shootButtonPressed) {
                 // If we were firing (latched), zero turret to counter encoder drift
-                if (shootingLatched) {
-                    shooter.resetTurretZeroState();
-                    shooter.startTurretZero(0.65);  // Faster zeroing during run
-                    turretState = TurretState.ZEROING;
-                }
                 shootingLatched = false;
             }
             // Latch when ALL conditions met for required duration (30ms)
@@ -406,6 +438,12 @@ public class MainTeleOp extends LinearOpMode {
                 drive.getOdometryY() / 25.4,
                 drive.getOdometryHeading(),
                 (turretState == TurretState.VISUAL_TRACKING) ? "[FROZEN]" : "");
+            
+            telemetry.addLine("");
+            telemetry.addData("=== TURRET PID (Panels) ===", "");
+            telemetry.addData("Pos Kp", "%.4f", turretKp);
+            telemetry.addData("Vis Kp/Kd/Kf", "%.4f / %.4f / %.4f", turretVisualKp, turretVisualKd, turretVisualKf);
+            telemetry.addData("Turn FF/Decay", "%.2f / %.2f", turretTurnFf, turretTurnFfDecay);
 
             telemetry.update();
             panelsTelemetry.update(telemetry);

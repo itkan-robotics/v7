@@ -82,7 +82,7 @@ public class TurretTuning extends SelectableOpMode {
     @Override
     public void onSelect() {
         // Initialize hardware
-        RobotConstants.setRobot(RobotConstants.ROBOT_21171);
+        RobotConstants.setRobot(RobotConstants.ROBOT_19564);
         drive = new Drive(hardwareMap);
         shooter = new Shooter(hardwareMap);
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
@@ -349,7 +349,8 @@ class VisualTest extends OpMode {
             turretMotor.setPower(0);
             lastVisualError = 0;
         }
-        
+        double turretCurrentTicks = turretMotor.getCurrentPosition();
+
         // Telemetry
         telemetryM.debug("=== LIMELIGHT ===");
         telemetryM.debug("Target: " + (hasCorrectTarget ? "YES (" + detectedTagId + ")" : "NO"));
@@ -363,6 +364,7 @@ class VisualTest extends OpMode {
         telemetryM.debug("Power: " + String.format("%.3f", turretPower));
         telemetryM.debug("");
         telemetryM.debug("Loop: " + String.format("%.1f ms (%.0f Hz)", loopTimeMs, 1000.0/loopTimeMs));
+        telemetryM.debug("current ticks of turret" + turretCurrentTicks);
         telemetryM.update(telemetry);
     }
 }

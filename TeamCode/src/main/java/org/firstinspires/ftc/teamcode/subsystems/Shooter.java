@@ -248,6 +248,14 @@ public class Shooter {
         controlShooter(running, getShooterTPS(), getTargetShooterTPS());
     }
 
+    public void setTurretBrake( ){
+        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+    }
+    public void setTurretFloat( ){
+        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+    }
     /**
      * Control shooter motor using pre-computed TPS values.
      * Use this overload to avoid redundant TPS calculations.
@@ -473,6 +481,11 @@ public class Shooter {
      */
     public double getTargetTxOffset() {
         return targetTxOffset;
+    }
+    public boolean isTurretAligned(boolean red){
+       double error = targetTxOffset - getLimelightTx(red);
+       return Math.abs(error) < 2;
+
     }
     
     // ========== TURRET PID OVERRIDE SETTERS (for Panels tuning) ==========

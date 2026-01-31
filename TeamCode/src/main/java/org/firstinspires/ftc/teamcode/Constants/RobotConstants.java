@@ -52,7 +52,7 @@ public class RobotConstants {
     public static final double FIELD_CENTER_Y_INCHES = 72;
     
     public static GoBildaPinpointDriver.EncoderDirection getEncoderDirectionX() {
-        return GoBildaPinpointDriver.EncoderDirection.FORWARD;
+        return GoBildaPinpointDriver.EncoderDirection.REVERSED;
     }
     
     public static GoBildaPinpointDriver.EncoderDirection getEncoderDirectionY() {
@@ -65,28 +65,29 @@ public class RobotConstants {
     
     // ========== TURRET MOTOR CONSTANTS ==========
     // Turret motor ticks per full rotation (depends on motor + gearing)
-    public static final double TURRET_TICKS_PER_REV = 373;
+    public static final double TURRET_TICKS_PER_REV = 998;
     public static final double TURRET_TICKS_PER_DEGREE = (TURRET_TICKS_PER_REV) / 355.0;
     
     // Turret hardstop deadzone: usable range is 5° to 355° (350° total rotation)
     // 0 ticks corresponds to 5°, max ticks corresponds to 355°
-    public static final double TURRET_MIN_ANGLE = 5.0;        // Angle at 0 ticks (hardstop)
-    public static final double TURRET_MAX_ANGLE = 355.0;      // Angle at max ticks (hardstop)
+    public static final double TURRET_MIN_ANGLE = 7.5;        // Angle at 0 ticks (hardstop)
+    public static final double TURRET_MAX_ANGLE = 352.5;      // Angle at max ticks (hardstop)
     public static final double TURRET_ANGLE_RANGE = TURRET_MAX_ANGLE - TURRET_MIN_ANGLE;  // 350°
     public static final double TURRET_CENTER_OFFSET = 2.5 * INCHES_TO_MM;
     
     // Turret range limits (in ticks)
     public static final double TURRET_MIN_TICKS = 0;          // Corresponds to 5°
-    public static final double TURRET_MAX_TICKS = 373;  // Corresponds to 355°
+    public static final double TURRET_MAX_TICKS = 998;  // Corresponds to 355°
     
     // Turret position PID constants
-    public static final double TURRET_KP = 0.03;
+    public static final double TURRET_KP = 0.05;
     public static final double TURRET_KI = 0.0;
     public static final double TURRET_KD = 0.0;
 
-    // Visual tracking PD (tuned values for 21171 lunar)
-    public static final double TURRET_VISUAL_KP = 0.01;
-    public static final double TURRET_VISUAL_KD = 0.0002;
+    // Visual tracking PD (need tuning for 19564 solar)
+    public static final double TURRET_VISUAL_KP = 0.03; //0.03
+    public static final double TURRET_VISUAL_KD = 0.035; //0.00012
+
     public static final double TURRET_VISUAL_KF = 0.0;
     public static final double TURRET_VISUAL_DEADBAND = 0.65;  // degrees
     public static final double TURRET_VISUAL_MAX_POWER = 0.6;
