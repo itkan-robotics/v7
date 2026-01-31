@@ -140,8 +140,10 @@ public class Drive {
      */
     public double calculateTurretAngleToGoal(double goalX, double goalY) {
         // Calculate delta from robot center to goal
-        double deltaX = goalX - cachedX - RobotConstants.TURRET_CENTER_OFFSET * Math.cos(cachedHeading);
-        double deltaY = goalY - cachedY - RobotConstants.TURRET_CENTER_OFFSET * Math.sin(cachedHeading);
+        // Note: cachedHeading is in degrees, must convert to radians for Math.cos/sin
+        double headingRadians = Math.toRadians(cachedHeading);
+        double deltaX = goalX - cachedX - RobotConstants.TURRET_CENTER_OFFSET * Math.cos(headingRadians);
+        double deltaY = goalY - cachedY - RobotConstants.TURRET_CENTER_OFFSET * Math.sin(headingRadians);
 
         // Field angle from robot to goal (0° = positive X axis, increases counter-clockwise)
         double fieldAngleToGoal = Math.toDegrees(Math.atan2(deltaY, deltaX));
