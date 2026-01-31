@@ -215,7 +215,8 @@ class OdometryTest extends OpMode {
         } else {
             double pTerm = errorTicks * TurretTuning.posKp;
             turretPower = Math.max(-1.0, Math.min(1.0, pTerm + smoothedTurnFF));
-            turretMotor.setPower(turretPower);
+            // Use safe power method with hardstop protection
+            turretPower = shooter.setTurretPowerSafe(turretPower);
         }
         
         // Telemetry
@@ -344,9 +345,10 @@ class VisualTest extends OpMode {
                 turretPower = pTerm + dTerm + kfTerm + smoothedTurnFF;
                 turretPower = Math.max(-TurretTuning.visualMaxPower, Math.min(TurretTuning.visualMaxPower, turretPower));
             }
-            turretMotor.setPower(turretPower);
+            // Use safe power method with hardstop protection
+            turretPower = shooter.setTurretPowerSafe(turretPower);
         } else {
-            turretMotor.setPower(0);
+            shooter.setTurretPowerSafe(0);
             lastVisualError = 0;
         }
         double turretCurrentTicks = turretMotor.getCurrentPosition();
@@ -514,14 +516,16 @@ class CombinedTest extends OpMode {
                 turretPower = pTerm + dTerm + kfTerm + ffTerm;
                 turretPower = Math.max(-TurretTuning.visualMaxPower, Math.min(TurretTuning.visualMaxPower, turretPower));
             }
-            turretMotor.setPower(turretPower);
+            // Use safe power method with hardstop protection
+            turretPower = shooter.setTurretPowerSafe(turretPower);
         } else {
             lastVisualError = 0;
             double errorTicks = turretTargetTicks - turretCurrentTicks;
             pTerm = errorTicks * TurretTuning.posKp;
             turretPower = pTerm + ffTerm;
             turretPower = Math.max(-1.0, Math.min(1.0, turretPower));
-            turretMotor.setPower(turretPower);
+            // Use safe power method with hardstop protection
+            turretPower = shooter.setTurretPowerSafe(turretPower);
         }
         
         // Telemetry

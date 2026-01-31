@@ -296,15 +296,19 @@ public class Shooter {
         while (normalizedAngle < 0) normalizedAngle += 360;
         while (normalizedAngle >= 360) normalizedAngle -= 360;
         
-        // Clamp to valid turret range (5° to 355°)
+        // Clamp to valid turret range (7.5° to 352.5°)
         if (normalizedAngle < RobotConstants.TURRET_MIN_ANGLE) {
             normalizedAngle = RobotConstants.TURRET_MIN_ANGLE;
         } else if (normalizedAngle > RobotConstants.TURRET_MAX_ANGLE) {
             normalizedAngle = RobotConstants.TURRET_MAX_ANGLE;
         }
         
-        // Convert to ticks: 0 ticks = 5°, so subtract the min angle offset
+        // Convert to ticks: 0 ticks = 7.5°, so subtract the min angle offset
         double ticks = (normalizedAngle - RobotConstants.TURRET_MIN_ANGLE) * RobotConstants.TURRET_TICKS_PER_DEGREE;
+        
+        // Clamp to soft limits to prevent ever targeting the hardstop zones
+        ticks = Math.max(RobotConstants.TURRET_SOFT_MIN_TICKS, 
+                        Math.min(RobotConstants.TURRET_SOFT_MAX_TICKS, ticks));
         
         return ticks;
     }
@@ -317,10 +321,62 @@ public class Shooter {
     }
     
     /**
-     * Set turret motor power directly.
+     * Set turret motor power directly (NO hardstop protection - use setTurretPowerSafe instead).
      */
     public void setTurretPower(double power) {
         turretMotor.setPower(power);
+    }
+    
+    /**
+     * Set turret motor power with hardstop protection.
+     * Prevents driving into hardstops and reduces power when approaching limits.
+     * 
+     * @param power Desired power (-1 to 1)
+     * @return Actual power applied (may be reduced or zeroed for safety)
+     */
+    public double setTurretPowerSafe(double power) {
+        double currentTicks = turretMotor.getCurrentPosition();
+        double safePower = power;
+        
+        // Check if we're at or past the soft limits
+        boolean atMinLimit = currentTicks <= RobotConstants.TURRET_SOFT_MIN_TICKS;
+        boolean atMaxLimit = currentTicks >= RobotConstants.TURRET_SOFT_MAX_TICKS;
+        
+        // Don't allow power that would drive further into the limit
+        if (atMinLimit && power < 0) {
+            safePower = 0;  // At min limit, don't allow negative (towards hardstop)
+        } else if (atMaxLimit && power > 0) {
+            safePower = 0;  // At max limit, don't allow positive (towards hardstop)
+        }
+        
+        // Reduce power when approaching limits (soft landing)
+        double distanceToMin = currentTicks - RobotConstants.TURRET_MIN_TICKS;
+        double distanceToMax = RobotConstants.TURRET_MAX_TICKS - currentTicks;
+        
+        if (power < 0 && distanceToMin < RobotConstants.TURRET_LIMIT_APPROACH_ZONE) {
+            // Approaching min limit while moving negative
+            double scale = distanceToMin / RobotConstants.TURRET_LIMIT_APPROACH_ZONE;
+            scale = Math.max(0.1, scale);  // Never scale below 10%
+            safePower = power * scale;
+        } else if (power > 0 && distanceToMax < RobotConstants.TURRET_LIMIT_APPROACH_ZONE) {
+            // Approaching max limit while moving positive
+            double scale = distanceToMax / RobotConstants.TURRET_LIMIT_APPROACH_ZONE;
+            scale = Math.max(0.1, scale);  // Never scale below 10%
+            safePower = power * scale;
+        }
+        
+        turretMotor.setPower(safePower);
+        return safePower;
+    }
+    
+    /**
+     * Check if turret is at or past its soft limits.
+     * @return true if turret should not move further in current direction
+     */
+    public boolean isTurretAtLimit() {
+        double currentTicks = turretMotor.getCurrentPosition();
+        return currentTicks <= RobotConstants.TURRET_SOFT_MIN_TICKS || 
+               currentTicks >= RobotConstants.TURRET_SOFT_MAX_TICKS;
     }
     
     /**
@@ -665,8 +721,9 @@ public class Shooter {
             turretPower = Math.max(-1.0, Math.min(1.0, turretPower));
         }
         
-        turretMotor.setPower(turretPower);
-        return new TurretControlResult(usingVisual, turretPower, pTerm, dTerm, smoothedTurnFF, currentTicks);
+        // Use safe power method with hardstop protection
+        double actualPower = setTurretPowerSafe(turretPower);
+        return new TurretControlResult(usingVisual, actualPower, pTerm, dTerm, smoothedTurnFF, currentTicks);
     }
     
     /**
@@ -695,14 +752,14 @@ public class Shooter {
         double error = targetTxOffset - tx;
         lastVisualError = error;
         if(Math.abs(error) < 1.5) {
-            turretMotor.setPower(0.0);
+            setTurretPowerSafe(0.0);
             return;
         }
 
         double pTerm = error * getEffectiveVisualKp();
         double ffTerm = turnInput * getEffectiveTurnFf();
         double power = Math.max(-0.75, Math.min(0.75, pTerm + ffTerm));
-        turretMotor.setPower(power);
+        setTurretPowerSafe(power);
     }
     public void pointTurretVisual(boolean isRedAlliance, double turnInput) {
          double tx = getLimelightTx(isRedAlliance);
@@ -710,7 +767,7 @@ public class Shooter {
          double derivative = error - lastVisualError;
          lastVisualError = error;
          if(Math.abs(error) < 1.5) {
-             turretMotor.setPower(0.0);
+             setTurretPowerSafe(0.0);
              return;
          }
          
@@ -719,7 +776,7 @@ public class Shooter {
          double ffTerm = turnInput * getEffectiveTurnFf();
          double kfTerm = Math.signum(error) * getEffectiveVisualKf();
          double power = Math.max(-0.75, Math.min(0.75, pTerm + dTerm + ffTerm + kfTerm));
-         turretMotor.setPower(power);
+         setTurretPowerSafe(power);
     }
     public void pointTurretVisual(boolean isRedAlliance) {
         double tx = getLimelightTx(isRedAlliance);
@@ -727,7 +784,7 @@ public class Shooter {
         double derivative = error - lastVisualError;
         lastVisualError = error;
         if(Math.abs(error) < 0.25) {
-            turretMotor.setPower(0.0);
+            setTurretPowerSafe(0.0);
             return;
         }
 
@@ -735,7 +792,7 @@ public class Shooter {
         double dTerm = derivative * getEffectiveVisualKd();
         double kfTerm = Math.signum(error) * getEffectiveVisualKf();
         double power = Math.max(-0.5, Math.min(0.5, pTerm + dTerm + kfTerm));
-        turretMotor.setPower(power);
+        setTurretPowerSafe(power);
     }
 
     public void pointTurretByPosition(boolean isRedAlliance, double targetAngleDegrees, double turnInput) {
@@ -746,7 +803,7 @@ public class Shooter {
          double pTerm = errorTicks * getEffectiveTurretKp();
          double ffTerm = turnInput * getEffectiveTurnFf();
          double power = Math.max(-1.0, Math.min(1.0, pTerm + ffTerm));
-         turretMotor.setPower(power);
+         setTurretPowerSafe(power);
     }
     public void pointTurretByPosition(double targetAngleDegrees) {
         double targetTicks = angleToTurretTicks(targetAngleDegrees);
@@ -755,7 +812,7 @@ public class Shooter {
 
         double pTerm = errorTicks * getEffectiveTurretKp();
         double power = Math.max(-1.0, Math.min(1.0, pTerm));
-        turretMotor.setPower(power);
+        setTurretPowerSafe(power);
     }
 
     public void stopShooter() {

@@ -76,8 +76,13 @@ public class RobotConstants {
     public static final double TURRET_CENTER_OFFSET = 2.5 * INCHES_TO_MM;
     
     // Turret range limits (in ticks)
-    public static final double TURRET_MIN_TICKS = 0;          // Corresponds to 5°
-    public static final double TURRET_MAX_TICKS = 998;  // Corresponds to 355°
+    public static final double TURRET_MIN_TICKS = 0;          // Corresponds to 7.5° (hardstop)
+    public static final double TURRET_MAX_TICKS = 998;        // Corresponds to 352.5° (hardstop)
+    
+    // Soft limits - stay inside physical hardstops to prevent stalling
+    public static final double TURRET_SOFT_MIN_TICKS = 15;    // ~5° inside min hardstop
+    public static final double TURRET_SOFT_MAX_TICKS = 983;   // ~5° inside max hardstop
+    public static final double TURRET_LIMIT_APPROACH_ZONE = 50;  // Start reducing power this many ticks from limit
     
     // Turret position PID constants
     public static final double TURRET_KP = 0.05;
