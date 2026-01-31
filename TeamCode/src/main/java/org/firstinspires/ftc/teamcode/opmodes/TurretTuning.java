@@ -82,7 +82,7 @@ public class TurretTuning extends SelectableOpMode {
     @Override
     public void onSelect() {
         // Initialize hardware
-        RobotConstants.setRobot(RobotConstants.ROBOT_19564);
+        RobotConstants.setRobot(RobotConstants.ROBOT_21171);
         drive = new Drive(hardwareMap);
         shooter = new Shooter(hardwareMap);
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");

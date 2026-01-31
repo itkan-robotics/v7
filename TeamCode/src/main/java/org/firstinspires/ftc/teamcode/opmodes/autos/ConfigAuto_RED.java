@@ -94,7 +94,7 @@ public class ConfigAuto_RED extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         // === INIT ===
-        RobotConstants.setRobot(RobotConstants.ROBOT_19564);
+        RobotConstants.setRobot(RobotConstants.ROBOT_21171);
 
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 

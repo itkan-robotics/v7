@@ -52,7 +52,8 @@ public class RobotConstants {
     public static final double FIELD_CENTER_Y_INCHES = 72;
     
     public static GoBildaPinpointDriver.EncoderDirection getEncoderDirectionX() {
-        return GoBildaPinpointDriver.EncoderDirection.REVERSED;
+        return is21171() ? GoBildaPinpointDriver.EncoderDirection.FORWARD :
+                           GoBildaPinpointDriver.EncoderDirection.REVERSED;
     }
     
     public static GoBildaPinpointDriver.EncoderDirection getEncoderDirectionY() {
@@ -93,9 +94,9 @@ public class RobotConstants {
 
     // Visual tracking PD (need tuning for 19564 solar)
     public static final double TURRET_VISUAL_KP = 0.015; //0.03
-    public static final double TURRET_VISUAL_KD = 0.0005; //0.00012
+    public static final double TURRET_VISUAL_KD = 0.02; //0.00012
 
-    public static final double TURRET_VISUAL_KF = 0.06;
+    public static final double TURRET_VISUAL_KF = 0.025;
     public static final double TURRET_VISUAL_DEADBAND = 0.65;  // degrees
     public static final double TURRET_VISUAL_MAX_POWER = 0.6;
     
@@ -210,8 +211,10 @@ public class RobotConstants {
     public static final double LIGHT_ORANGE = 0.333;
     public static final double LIGHT_YELLOW = 0.388;
     public static final double LIGHT_GREEN = 0.5;
+    public static final double LIGHT_CYAN = 0.583;    // Wobble mode: about to enable
     public static final double LIGHT_BLUE = 0.666;
     public static final double LIGHT_PURPLE = 0.722;
+    public static final double LIGHT_PINK = 0.777;    // Wobble mode: about to disable
     public static final double LIGHT_WHITE = 1.0;
     
     // ========== LIMELIGHT CONSTANTS ==========
