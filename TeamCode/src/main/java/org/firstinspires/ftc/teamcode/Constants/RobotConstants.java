@@ -210,8 +210,10 @@ public class RobotConstants {
     public static final double LIGHT_ORANGE = 0.333;
     public static final double LIGHT_YELLOW = 0.388;
     public static final double LIGHT_GREEN = 0.5;
+    public static final double LIGHT_CYAN = 0.583;    // Wobble mode: just enabled
     public static final double LIGHT_BLUE = 0.666;
     public static final double LIGHT_PURPLE = 0.722;
+    public static final double LIGHT_PINK = 0.777;    // Wobble mode: just disabled
     public static final double LIGHT_WHITE = 1.0;
     
     // ========== LIMELIGHT CONSTANTS ==========

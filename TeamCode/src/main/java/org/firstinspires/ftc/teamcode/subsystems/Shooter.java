@@ -1305,6 +1305,13 @@ public class Shooter {
     public void setLightOff() {
         lightServo.setPosition(RobotConstants.LIGHT_OFF);
     }
+    
+    /**
+     * Set LED to a specific color directly.
+     */
+    public void setLightColor(double color) {
+        lightServo.setPosition(color);
+    }
 
     // ========== STOP ALL ==========
 

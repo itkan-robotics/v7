@@ -66,6 +66,10 @@ public class MainTeleOp extends LinearOpMode {
     
     // Turret zero
     private boolean lastRightStickButton = false;
+    
+    // Wobble mode - doubles fire safety timer when turret PID is oscillating
+    private boolean wobbleMode = false;
+    private boolean lastYButton = false;
 
     // Feeding timing for transfer power ramp
     private long feedingStartTime = 0;
@@ -130,12 +134,22 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addData("Turn FF/Decay", "%.2f / %.2f", turretTurnFf, turretTurnFfDecay);
             telemetry.addData("LL Threshold", "%.1f", turretLimelightThreshold);
             telemetry.addLine("");
+            telemetry.addData("WOBBLE MODE", wobbleMode ? "ON (70ms fire timer)" : "OFF");
+            telemetry.addLine("Y = Toggle Wobble Mode");
+            telemetry.addLine("");
             telemetry.addData("Status", "Press START when ready");
             telemetry.update();
             panelsTelemetry.update(telemetry);
 
             if (gamepad1.b) isRedAlliance = true;
             else if (gamepad1.x) isRedAlliance = false;
+            
+            // Wobble mode toggle in init
+            boolean yButton = gamepad1.y;
+            if (yButton && !lastYButton) {
+                wobbleMode = !wobbleMode;
+            }
+            lastYButton = yButton;
         }
 
         // Initialize servos and set alliance
@@ -195,6 +209,14 @@ public class MainTeleOp extends LinearOpMode {
                 turretState = TurretState.ZEROING;
             }
             lastRightStickButton = rightStickButton;
+            
+            // ==================== WOBBLE MODE TOGGLE ====================
+            // Y button toggles wobble mode (increases fire safety timer when PID oscillates)
+            boolean yButton = gamepad1.y;
+            if (yButton && !lastYButton) {
+                wobbleMode = !wobbleMode;
+            }
+            lastYButton = yButton;
             
             // FSM switch statement
             switch (turretState) {
@@ -326,7 +348,8 @@ public class MainTeleOp extends LinearOpMode {
             conditionsWereReady = allConditionsReady;
             
             long conditionsReadyDuration = allConditionsReady ? (System.currentTimeMillis() - conditionsReadyStartTime) : 0;
-            boolean conditionsReadyLongEnough = conditionsReadyDuration >= MIN_CONDITIONS_READY_TIME_MS;
+            long requiredReadyTime = wobbleMode ? 70 : MIN_CONDITIONS_READY_TIME_MS;
+            boolean conditionsReadyLongEnough = conditionsReadyDuration >= requiredReadyTime;
 
             // Reset latch when button released
             if (!shootButtonPressed) {
@@ -401,12 +424,20 @@ public class MainTeleOp extends LinearOpMode {
             // ==================== LED ====================
             // LED KEY: WHITE=firing, BLUE=ready, GREEN=turret aligned, YELLOW=visual tracking,
             //          ORANGE=spinning/not aligned, PURPLE=3 balls, RED=idle
+            //          CYAN=wobble enabled, PINK=wobble disabled
             boolean hasThreeBalls = shooter.hasThreeBalls();
             boolean usingVisualTracking = (turretState == TurretState.VISUAL_TRACKING);
-            shooter.updateLightServo(
-                SHOOTING, shooterReady, isStationary,
-                shootingLatched, hasCorrectTarget, turretOnTarget, usingVisualTracking, hasThreeBalls
-            );
+            
+            // Override LED when Y held to show wobble mode toggle confirmation
+            if (yButton) {
+                // Show confirmation: CYAN = just enabled wobble, PINK = just disabled wobble
+                shooter.setLightColor(wobbleMode ? RobotConstants.LIGHT_CYAN : RobotConstants.LIGHT_PINK);
+            } else {
+                shooter.updateLightServo(
+                    SHOOTING, shooterReady, isStationary,
+                    shootingLatched, hasCorrectTarget, turretOnTarget, usingVisualTracking, hasThreeBalls
+                );
+            }
 
             // ==================== CLIMBER ====================
             boolean backButton = gamepad1.back;
@@ -427,10 +458,11 @@ public class MainTeleOp extends LinearOpMode {
             lastLeftStickButton = leftStickButton;
 
             // ==================== TELEMETRY ====================
-            telemetry.addData("Status", "%s | %s | %s", 
+            telemetry.addData("Status", "%s | %s | %s%s", 
                 RobotConstants.getCurrentRobot(),
                 isRedAlliance ? "RED" : "BLUE",
-                SHOOTING ? "SHOOTING" : "IDLE");
+                SHOOTING ? "SHOOTING" : "IDLE",
+                wobbleMode ? " | WOBBLE" : "");
             
             telemetry.addData("Shooter", "%.0f/%.0f TPS %s %s", 
                 currentTPS, targetTPS,
