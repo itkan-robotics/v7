@@ -29,8 +29,7 @@ public class TurretEncoderTest extends LinearOpMode {
         // Initialize turret motor
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret_motor");
         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         turretMotor.setPower(0);
 
@@ -50,38 +49,38 @@ public class TurretEncoderTest extends LinearOpMode {
         while (opModeIsActive()) {
             double encoderPos = turretMotor.getCurrentPosition();
             
-            // Check limits
-            boolean atMinLimit = encoderPos <= MIN_TICKS;
-            boolean atMaxLimit = encoderPos >= MAX_TICKS;
-            
-            // Manual control with soft limits
-            double power = 0;
-            
-            if (gamepad1.dpad_left && !atMinLimit) {
-                // Negative direction - block if at min limit
-                    power = -1;
-
-            } else if (gamepad1.dpad_right && !atMaxLimit) {
-                // Positive direction - block if at max limit
-                    power = 1;
-            } else if(atMaxLimit){
-                power = -0.15;
-            }else if(atMinLimit){
-                power = 0.15;
-            }else{
-                power = 0;
-            }
-            
-            turretMotor.setPower(power);
+//            // Check limits
+//            boolean atMinLimit = encoderPos <= MIN_TICKS;
+//            boolean atMaxLimit = encoderPos >= MAX_TICKS;
+//
+//            // Manual control with soft limits
+//            double power = 0;
+//
+//            if (gamepad1.dpad_left && !atMinLimit) {
+//                // Negative direction - block if at min limit
+//                    power = -1;
+//
+//            } else if (gamepad1.dpad_right && !atMaxLimit) {
+//                // Positive direction - block if at max limit
+//                    power = 1;
+//            } else if(atMaxLimit){
+//                power = -0.15;
+//            }else if(atMinLimit){
+//                power = 0.15;
+//            }else{
+//                power = 0;
+//            }
+//
+//            turretMotor.setPower(power);
 
             // Telemetry
             telemetry.addLine("=== TURRET ENCODER TEST ===");
             telemetry.addLine("");
             telemetry.addData("Encoder Position", "%.0f ticks", encoderPos);
-            telemetry.addData("Motor Power", "%.2f", power);
-            telemetry.addLine("");
-            telemetry.addData("Min Limit", "%.0f %s", MIN_TICKS, atMinLimit ? "[BLOCKED]" : "");
-            telemetry.addData("Max Limit", "%.0f %s", MAX_TICKS, atMaxLimit ? "[BLOCKED]" : "");
+//            telemetry.addData("Motor Power", "%.2f", power);
+//            telemetry.addLine("");
+//            telemetry.addData("Min Limit", "%.0f %s", MIN_TICKS, atMinLimit ? "[BLOCKED]" : "");
+//            telemetry.addData("Max Limit", "%.0f %s", MAX_TICKS, atMaxLimit ? "[BLOCKED]" : "");
             telemetry.update();
         }
         

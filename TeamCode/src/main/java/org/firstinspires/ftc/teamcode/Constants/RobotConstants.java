@@ -93,15 +93,15 @@ public class RobotConstants {
     public static final double TURRET_KD = 0.0;
 
     // Visual tracking PD (need tuning for 19564 solar)
-    public static final double TURRET_VISUAL_KP = 0.015; //0.03
-    public static final double TURRET_VISUAL_KD = 0.02; //0.00012
+    public static final double TURRET_VISUAL_KP = 0.0185; //0.03 //0.0175
+    public static final double TURRET_VISUAL_KD = 0; //0.00012 //0
 
-    public static final double TURRET_VISUAL_KF = 0.025;
+    public static final double TURRET_VISUAL_KF = 0.015; //0.035
     public static final double TURRET_VISUAL_DEADBAND = 0.65;  // degrees
-    public static final double TURRET_VISUAL_MAX_POWER = 0.6;
+    public static final double TURRET_VISUAL_MAX_POWER = 0.75; //0.75
     
     // Turret feedforward to counteract base rotation (for gamepad input [-1,1])
-    public static final double TURRET_TURN_FF = -0.5;
+    public static final double TURRET_TURN_FF = -0.6;
     public static final double TURRET_TURN_FF_DECAY = 3.0;  // units/sec ramp rate
     
     // Limelight update threshold (only update when turret error < this many ticks)

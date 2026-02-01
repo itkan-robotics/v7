@@ -333,7 +333,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             CornertoShoot5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(19, 39), new Pose(57.000, 75.000))
+                            new BezierLine(new Pose(19, 39), new Pose(59.000, 77.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -342,7 +342,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             End = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57, 75.000), new Pose(50, 70))
+                            new BezierLine(new Pose(59, 77.000), new Pose(50, 70))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -357,7 +357,7 @@ public class ConfigAuto_BLUE extends LinearOpMode {
             SuicideToShoot = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(16, 16), new Pose(57, 75.000))
+                            new BezierLine(new Pose(16, 16), new Pose(59, 77.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()

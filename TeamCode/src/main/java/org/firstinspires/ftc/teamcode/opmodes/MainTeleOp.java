@@ -28,6 +28,8 @@ public class MainTeleOp extends LinearOpMode {
     // Turn feedforward
     public static double turretTurnFf = RobotConstants.TURRET_TURN_FF;  // -0.5
     public static double turretTurnFfDecay = RobotConstants.TURRET_TURN_FF_DECAY;  // 3.0
+
+    double txOffset = 0;
     
     // Limelight engage threshold
     public static double turretLimelightThreshold = RobotConstants.TURRET_LIMELIGHT_THRESHOLD;  // 50.0
@@ -70,6 +72,10 @@ public class MainTeleOp extends LinearOpMode {
     // Wobble mode - doubles fire safety timer when turret PID is oscillating
     private boolean wobbleMode = false;
     private boolean lastYButton = false;
+    
+    // Telemetry toggle (set during init)
+    private boolean telemetryEnabled = true;
+    private boolean lastAButtonInit = false;
 
     // Feeding timing for transfer power ramp
     private long feedingStartTime = 0;
@@ -119,12 +125,30 @@ public class MainTeleOp extends LinearOpMode {
         while (!opModeIsActive() && !isStopRequested()) {
             shooter.updateTurretZero();
             
+            // Telemetry toggle (A button during init)
+            boolean aButtonInit = gamepad1.a;
+            if (aButtonInit && !lastAButtonInit) {
+                telemetryEnabled = !telemetryEnabled;
+            }
+            lastAButtonInit = aButtonInit;
+            
+            // Wobble mode toggle in init
+            boolean yButton = gamepad1.y;
+            if (yButton && !lastYButton) {
+                wobbleMode = !wobbleMode;
+            }
+            lastYButton = yButton;
+            
             telemetry.addLine("=== 21171 Lunar ROBOT ===");
             telemetry.addLine("");
             telemetry.addData("=== ALLIANCE SELECT ===", "");
             telemetry.addLine("B = RED  |  X = BLUE");
             telemetry.addData("Alliance", isRedAlliance ? "RED" : "BLUE");
             telemetry.addData("Target Tag", isRedAlliance ? 24 : 20);
+            telemetry.addLine("");
+            telemetry.addData("=== OPTIONS ===", "");
+            telemetry.addData("Telemetry (A)", telemetryEnabled ? "ENABLED" : "DISABLED");
+            telemetry.addData("Wobble Mode (Y)", wobbleMode ? "ON (70ms)" : "OFF (15ms)");
             telemetry.addLine("");
             telemetry.addData("Pinpoint Status", drive.getPinpointStatus());
             telemetry.addData("Turret Zero", shooter.isTurretZeroComplete() ? "COMPLETE" : "IN PROGRESS...");
@@ -136,22 +160,18 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addData("Turn FF/Decay", "%.2f / %.2f", turretTurnFf, turretTurnFfDecay);
             telemetry.addData("LL Threshold", "%.1f", turretLimelightThreshold);
             telemetry.addLine("");
-            telemetry.addData("WOBBLE MODE", wobbleMode ? "ON (70ms fire timer)" : "OFF");
-            telemetry.addLine("Y = Toggle Wobble Mode");
-            telemetry.addLine("");
             telemetry.addData("Status", "Press START when ready");
             telemetry.update();
             panelsTelemetry.update(telemetry);
 
-            if (gamepad1.b) isRedAlliance = true;
-            else if (gamepad1.x) isRedAlliance = false;
-            
-            // Wobble mode toggle in init
-            boolean yButton = gamepad1.y;
-            if (yButton && !lastYButton) {
-                wobbleMode = !wobbleMode;
+            if (gamepad1.b){
+                isRedAlliance = true;
+                txOffset = -2;
             }
-            lastYButton = yButton;
+            else if (gamepad1.x){
+                isRedAlliance = false;
+                txOffset = 2;
+            }
         }
 
         // Initialize servos and set alliance
@@ -320,7 +340,7 @@ public class MainTeleOp extends LinearOpMode {
             // Apply TPS override (only used when no tag visible)
             if (leftBumper) {
                 shooter.setDefaultTPSOverride(1750.0);
-                shooter.setTargetTxOffset(-2);
+                shooter.setTargetTxOffset(txOffset);
             } else if (rightBumper) {
                 shooter.setDefaultTPSOverride(1550.0);
                 shooter.setTargetTxOffset(0);
@@ -460,41 +480,43 @@ public class MainTeleOp extends LinearOpMode {
             lastLeftStickButton = leftStickButton;
 
             // ==================== TELEMETRY ====================
-            telemetry.addData("Status", "%s | %s | %s%s", 
-                RobotConstants.getCurrentRobot(),
-                isRedAlliance ? "RED" : "BLUE",
-                SHOOTING ? "SHOOTING" : "IDLE",
-                wobbleMode ? " | WOBBLE" : "");
-            
-            telemetry.addData("Shooter", "%.0f/%.0f TPS %s %s", 
-                currentTPS, targetTPS,
-                shooterReady ? "[RDY]" : "",
-                isStationary ? "[STOP]" : "[MOVING]");
-            
-            String turretStateStr = turretState.toString();
-            double smoothedFF = shooter.getSmoothedTurnFF();
-            telemetry.addData("Turret", "%.0f/%.0f err:%.0f pwr:%.3f ff:%.3f [%s]",
-                turretCurrentTicks, turretTargetTicks, turretError,
-                turretPower, smoothedFF, turretStateStr);
-            
-            telemetry.addData("Limelight", "%s tx:%.1f ty:%.1f",
-                hasCorrectTarget ? "[OK]" : "---",
-                tx, ty);
-            
-            telemetry.addData("Odom", "X:%.1f Y:%.1f H:%.1f %s",
-                drive.getOdometryX() / 25.4, 
-                drive.getOdometryY() / 25.4,
-                drive.getOdometryHeading(),
-                (turretState == TurretState.VISUAL_TRACKING) ? "[FROZEN]" : "");
-            
-            telemetry.addLine("");
-            telemetry.addData("=== TURRET PID (Panels) ===", "");
-            telemetry.addData("Pos Kp", "%.4f", turretKp);
-            telemetry.addData("Vis Kp/Kd/Kf", "%.4f / %.4f / %.4f", turretVisualKp, turretVisualKd, turretVisualKf);
-            telemetry.addData("Turn FF/Decay", "%.2f / %.2f", turretTurnFf, turretTurnFfDecay);
+            if (telemetryEnabled) {
+                telemetry.addData("Status", "%s | %s | %s%s", 
+                    RobotConstants.getCurrentRobot(),
+                    isRedAlliance ? "RED" : "BLUE",
+                    SHOOTING ? "SHOOTING" : "IDLE",
+                    wobbleMode ? " | WOBBLE" : "");
+                
+                telemetry.addData("Shooter", "%.0f/%.0f TPS %s %s", 
+                    currentTPS, targetTPS,
+                    shooterReady ? "[RDY]" : "",
+                    isStationary ? "[STOP]" : "[MOVING]");
+                
+                String turretStateStr = turretState.toString();
+                double smoothedFF = shooter.getSmoothedTurnFF();
+                telemetry.addData("Turret", "%.0f/%.0f err:%.0f pwr:%.3f ff:%.3f [%s]",
+                    turretCurrentTicks, turretTargetTicks, turretError,
+                    turretPower, smoothedFF, turretStateStr);
+                
+                telemetry.addData("Limelight", "%s tx:%.1f ty:%.1f",
+                    hasCorrectTarget ? "[OK]" : "---",
+                    tx, ty);
+                
+                telemetry.addData("Odom", "X:%.1f Y:%.1f H:%.1f %s",
+                    drive.getOdometryX() / 25.4, 
+                    drive.getOdometryY() / 25.4,
+                    drive.getOdometryHeading(),
+                    (turretState == TurretState.VISUAL_TRACKING) ? "[FROZEN]" : "");
+                
+                telemetry.addLine("");
+                telemetry.addData("=== TURRET PID (Panels) ===", "");
+                telemetry.addData("Pos Kp", "%.4f", turretKp);
+                telemetry.addData("Vis Kp/Kd/Kf", "%.4f / %.4f / %.4f", turretVisualKp, turretVisualKd, turretVisualKf);
+                telemetry.addData("Turn FF/Decay", "%.2f / %.2f", turretTurnFf, turretTurnFfDecay);
 
-            telemetry.update();
-            panelsTelemetry.update(telemetry);
+                telemetry.update();
+                panelsTelemetry.update(telemetry);
+            }
         }
         
         drive.stopMotors();

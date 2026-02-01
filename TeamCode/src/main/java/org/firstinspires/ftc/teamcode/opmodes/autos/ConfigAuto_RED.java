@@ -335,7 +335,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             CornertoShoot5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(125, 39.5), new Pose(86.500, 73.500))
+                            new BezierLine(new Pose(125, 39.5), new Pose(83.000, 75.000))
                     )
                     .setTangentHeadingInterpolation()
                     .setReversed()
@@ -360,7 +360,7 @@ public class ConfigAuto_RED extends LinearOpMode {
             End = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(86.500, 73.500), new Pose(95, 70))
+                            new BezierLine(new Pose(83.000, 75.000), new Pose(95, 70))
                     )
                     .setTangentHeadingInterpolation()
                     .build();

@@ -503,7 +503,7 @@ public class Shooter {
     }
     public boolean isTurretAligned(boolean red){
        double error = targetTxOffset - getLimelightTx(red);
-       return Math.abs(error) < 2;
+       return Math.abs(error) < 3;
 
     }
     
@@ -728,7 +728,7 @@ public class Shooter {
          double error = targetTxOffset - tx;
          double derivative = error - lastVisualError;
          lastVisualError = error;
-         if(Math.abs(error) < 1.5) {
+         if(Math.abs(error) < 3) {
              turretMotor.setPower(0.0);
              return;
          }
